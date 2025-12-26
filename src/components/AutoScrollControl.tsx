@@ -5,9 +5,14 @@ import { Slider } from "@/components/ui/slider";
 
 export function AutoScrollControl() {
   const [isScrolling, setIsScrolling] = useState(false);
-  const [speed, setSpeed] = useState(30); // pixels per second
+  const [speed, setSpeed] = useState(50); // 1-100 scale, maps to 10-150 px/sec
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
+
+  // Map speed value (1-100) to pixels per second (10-150)
+  const getPixelsPerSecond = useCallback((speedValue: number) => {
+    return 10 + (speedValue / 100) * 140;
+  }, []);
 
   const scroll = useCallback((currentTime: number) => {
     if (lastTimeRef.current === 0) {
@@ -17,8 +22,10 @@ export function AutoScrollControl() {
     const deltaTime = (currentTime - lastTimeRef.current) / 1000;
     lastTimeRef.current = currentTime;
 
-    const scrollAmount = speed * deltaTime;
-    window.scrollBy(0, scrollAmount);
+    const pixelsPerSecond = getPixelsPerSecond(speed);
+    const scrollAmount = pixelsPerSecond * deltaTime;
+    
+    window.scrollBy({ top: scrollAmount, behavior: 'instant' });
 
     // Check if we've reached the bottom
     const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
@@ -28,7 +35,7 @@ export function AutoScrollControl() {
     }
 
     animationRef.current = requestAnimationFrame(scroll);
-  }, [speed]);
+  }, [speed, getPixelsPerSecond]);
 
   useEffect(() => {
     if (isScrolling) {
@@ -52,6 +59,18 @@ export function AutoScrollControl() {
 
   return (
     <div className="flex items-center gap-3">
+      <div className="w-20">
+        <Slider
+          value={[speed]}
+          onValueChange={([newSpeed]) => setSpeed(newSpeed)}
+          min={1}
+          max={100}
+          step={1}
+          className="cursor-pointer"
+          aria-label="מהירות גלילה"
+        />
+      </div>
+      
       <Button
         variant="ghost"
         size="icon"
@@ -69,18 +88,7 @@ export function AutoScrollControl() {
           <Play className="h-4 w-4" />
         )}
       </Button>
-      
-      <div className="w-24">
-        <Slider
-          value={[speed]}
-          onValueChange={([newSpeed]) => setSpeed(newSpeed)}
-          min={10}
-          max={100}
-          step={5}
-          className="cursor-pointer"
-          aria-label="מהירות גלילה"
-        />
-      </div>
     </div>
   );
 }
+

@@ -17,12 +17,19 @@ function ChordUnitDisplay({ unit, transposition }: ChordUnitDisplayProps) {
   const semitones = Math.round(transposition * 2);
   const transposedChord = unit.chord ? transposeChord(unit.chord, semitones) : null;
   
+  // Render each character separately to prevent layout issues
+  const text = unit.text || '\u00A0';
+  
+  if (!transposedChord) {
+    // No chord - just render text normally
+    return <span>{text}</span>;
+  }
+  
+  // Chord exists - position it above the first character
   return (
     <span className="chord-unit">
-      {transposedChord && (
-        <span className="chord-above">{transposedChord}</span>
-      )}
-      <span className="chord-text">{unit.text || '\u00A0'}</span>
+      <span className="chord-above">{transposedChord}</span>
+      <span className="chord-text">{text}</span>
     </span>
   );
 }

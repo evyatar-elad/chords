@@ -45,7 +45,7 @@ export function TranspositionControl({
         value={String(value)}
         onValueChange={(v) => onChange(parseFloat(v))}
       >
-        <SelectTrigger className="w-[70px] h-8 bg-transparent border-border/50 text-primary font-mono font-semibold">
+        <SelectTrigger className="w-20 h-8 bg-transparent border-border/50 text-primary font-mono font-semibold">
           <SelectValue>{formatValue(value)}</SelectValue>
         </SelectTrigger>
         <SelectContent>
