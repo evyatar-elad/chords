@@ -1,12 +1,11 @@
-import { useState } from "react";
-import { Guitar } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Guitar, ChevronLeft, ChevronRight } from "lucide-react";
 import { SongInput } from "@/components/SongInput";
 import { SongDisplay } from "@/components/SongDisplay";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
 import { QuickSongInput } from "@/components/QuickSongInput";
 import { Button } from "@/components/ui/button";
 import { scrapeSong, SongData } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [song, setSong] = useState<SongData | null>(null);
@@ -14,46 +13,58 @@ const Index = () => {
   const [transposition, setTransposition] = useState(0);
   const [originalTransposition, setOriginalTransposition] = useState(0);
   const [fontSize, setFontSize] = useState(16);
-  const { toast } = useToast();
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const handleSubmit = async (url: string) => {
     setIsLoading(true);
     setSong(null);
     setTransposition(0);
     setOriginalTransposition(0);
+    setCurrentPage(0);
 
     try {
       const response = await scrapeSong(url);
 
       if (response.success && response.data) {
         setSong(response.data);
-        // Apply initial transposition from the ton parameter if exists
         if (response.data.transposition !== 0) {
           setTransposition(response.data.transposition);
           setOriginalTransposition(response.data.transposition);
-          toast({
-            title: "גרסה קלה",
-            description: `הטרנספוזיציה הותאמה אוטומטית ל-${response.data.transposition > 0 ? '+' : ''}${response.data.transposition}`,
-          });
         }
-      } else {
-        toast({
-          title: "שגיאה",
-          description: response.error || "לא הצלחתי לטעון את השיר",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error("Error fetching song:", error);
-      toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בטעינת השיר",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  const goToNextPage = useCallback(() => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  }, [currentPage, totalPages]);
+
+  const goToPrevPage = useCallback(() => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [currentPage]);
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        goToNextPage();
+      } else if (e.key === "ArrowRight") {
+        goToPrevPage();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [goToNextPage, goToPrevPage]);
 
   const handleBack = () => {
     setSong(null);
@@ -86,9 +97,9 @@ const Index = () => {
         </div>
       ) : (
         // Song View
-        <div className="min-h-screen flex flex-col">
-          {/* Header with integrated toolbar */}
-          <header className="sticky top-0 z-40 glass">
+        <div className="h-screen flex flex-col overflow-hidden">
+          {/* Header with toolbar on the same line */}
+          <header className="sticky top-0 z-40 glass shrink-0">
             <div className="container max-w-6xl mx-auto px-4 py-2">
               <div className="flex items-center gap-3">
                 <Button
@@ -100,13 +111,25 @@ const Index = () => {
                   חזור
                 </Button>
                 
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-lg font-bold text-foreground truncate text-center">
+                <div className="flex-1 min-w-0 text-center">
+                  <h1 className="text-lg font-bold text-foreground truncate">
                     {song.title}
                   </h1>
-                  <p className="text-sm text-muted-foreground truncate text-center">
+                  <p className="text-sm text-muted-foreground truncate">
                     {song.artist}
                   </p>
+                </div>
+
+                {/* Toolbar on right side of header */}
+                <div className="shrink-0">
+                  <FloatingToolbar
+                    transposition={transposition}
+                    onTranspositionChange={setTransposition}
+                    fontSize={fontSize}
+                    onFontSizeChange={setFontSize}
+                    originalTransposition={originalTransposition}
+                    onResetToOriginal={handleResetToOriginal}
+                  />
                 </div>
 
                 {/* Quick song input */}
@@ -114,30 +137,47 @@ const Index = () => {
                   <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} />
                 </div>
               </div>
-              
-              {/* Toolbar integrated in header */}
-              <div className="flex justify-center mt-2">
-                <FloatingToolbar
-                  transposition={transposition}
-                  onTranspositionChange={setTransposition}
-                  fontSize={fontSize}
-                  onFontSizeChange={setFontSize}
-                  originalTransposition={originalTransposition}
-                  onResetToOriginal={handleResetToOriginal}
-                />
-              </div>
             </div>
           </header>
 
-          {/* Song Content */}
-          <main className="flex-1">
-            <div className="container max-w-6xl mx-auto px-4 py-6">
+          {/* Song Content - fills remaining height */}
+          <main className="flex-1 overflow-hidden relative">
+            <div className="h-full container max-w-6xl mx-auto px-4 py-4">
               <SongDisplay
                 lines={song.lines}
                 transposition={transposition}
                 fontSize={fontSize}
+                currentPage={currentPage}
+                onTotalPagesChange={setTotalPages}
               />
             </div>
+            
+            {/* Page Navigation */}
+            {totalPages > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 glass rounded-full px-3 py-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goToPrevPage}
+                  disabled={currentPage === 0}
+                  className="h-8 w-8"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  {currentPage + 1} / {totalPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goToNextPage}
+                  disabled={currentPage >= totalPages - 1}
+                  className="h-8 w-8"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
           </main>
         </div>
       )}
