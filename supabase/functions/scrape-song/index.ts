@@ -99,78 +99,62 @@ Deno.serve(async (req) => {
 });
 
 function parseSongFromHtml(html: string, url: string): SongData {
-  // Extract title - look for the song title in various places
   let title = 'שיר ללא שם';
   let artist = 'אמן לא ידוע';
 
-  // Try to extract from h1 or title element
-  const titleMatch = html.match(/<h1[^>]*class="[^"]*song-title[^"]*"[^>]*>([^<]+)</i) ||
-                     html.match(/<title>([^<]+)<\/title>/i) ||
-                     html.match(/<h1[^>]*>([^<]+)</i);
-  
-  if (titleMatch) {
-    const fullTitle = titleMatch[1].trim();
-    // Tab4u format is usually "Artist - Song Title" or "Song Title - Artist"
-    const parts = fullTitle.split(' - ');
-    if (parts.length >= 2) {
-      // Try to determine which is artist and which is song
-      artist = parts[0].trim().replace(/tab4u\.com/gi, '').replace(/אקורדים/gi, '').trim();
-      title = parts.slice(1).join(' - ').trim().replace(/אקורדים/gi, '').trim();
-    } else {
-      title = fullTitle.replace(/tab4u\.com/gi, '').replace(/אקורדים/gi, '').trim();
+  // Extract title and artist from h1: "אקורדים לשיר SONG_NAME של ARTIST_NAME"
+  const h1Match = html.match(/<h1[^>]*>.*?אקורדים לשיר\s+([^<]+?)\s+של\s+(?:<a[^>]*>)?([^<]+?)(?:<\/a>)?<\/font><\/h1>/is);
+  if (h1Match) {
+    title = h1Match[1].trim();
+    artist = h1Match[2].trim();
+    console.log('Extracted from h1:', { title, artist });
+  } else {
+    // Fallback: try alternative h1 pattern
+    const altH1Match = html.match(/<h1[^>]*>[^<]*אקורדים לשיר\s+(.+?)\s+של\s+<a[^>]*>([^<]+)<\/a>/is);
+    if (altH1Match) {
+      title = altH1Match[1].trim();
+      artist = altH1Match[2].trim();
+      console.log('Extracted from alt h1:', { title, artist });
     }
   }
 
-  // Check for easy version button and get transposition value
+  // Check for easy version link and get transposition value
   let transposition = 0;
   let hasEasyVersion = false;
 
-  // Look for the easy version link with ton parameter
-  const easyVersionMatch = html.match(/href="[^"]*ton=(\d+)[^"]*"[^>]*>[^<]*גרסה קלה/i) ||
-                           html.match(/גרסה קלה[^<]*<\/a>[^<]*href="[^"]*ton=(\d+)/i);
+  // Look for the easy version link with ton parameter (can be negative like ton=-1.5)
+  const easyVersionMatch = html.match(/href="[^"]*\?ton=(-?[\d.]+)[^"]*"[^>]*>[^<]*גרסה קלה/i) ||
+                           html.match(/id="eLinkZ"[^>]*href="[^"]*\?ton=(-?[\d.]+)/i);
   
   if (easyVersionMatch) {
     hasEasyVersion = true;
-    transposition = parseInt(easyVersionMatch[1], 10) || 0;
+    transposition = parseFloat(easyVersionMatch[1]) || 0;
     console.log('Found easy version with transposition:', transposition);
   }
 
-  // Check if "אין גרסה קלה" exists
-  if (html.includes('אין גרסה קלה')) {
-    hasEasyVersion = false;
-    transposition = 0;
+  // Also check if the current URL has a ton parameter
+  const urlTonMatch = url.match(/[?&]ton=(-?[\d.]+)/);
+  if (urlTonMatch) {
+    transposition = parseFloat(urlTonMatch[1]) || 0;
+    console.log('URL has ton parameter:', transposition);
   }
 
-  // Extract the song content (chords and lyrics)
+  // Extract the song content from the songContentTPL div
   let content = '';
-
-  // Look for the main song content container - tab4u uses various class names
-  const contentPatterns = [
-    /<div[^>]*class="[^"]*song[_-]?content[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<div/i,
-    /<div[^>]*id="[^"]*song[_-]?content[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<div/i,
-    /<pre[^>]*class="[^"]*chords[^"]*"[^>]*>([\s\S]*?)<\/pre>/i,
-    /<div[^>]*class="[^"]*tabs?[_-]?view[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/i,
-  ];
-
-  for (const pattern of contentPatterns) {
-    const match = html.match(pattern);
-    if (match) {
-      content = match[1];
-      break;
+  
+  // Find the song content container
+  const songContentMatch = html.match(/<div[^>]*id="songContentTPL"[^>]*>([\s\S]*?)<\/div>\s*(?:<div[^>]*id="|<\/div>\s*<\/div>)/i);
+  
+  if (songContentMatch) {
+    content = parseSongContent(songContentMatch[1]);
+    console.log('Parsed song content, length:', content.length);
+  } else {
+    // Fallback: look for tables with song/chords classes
+    const tablesMatch = html.match(/<table[^>]*>[\s\S]*?class="(?:song|chords)"[\s\S]*?<\/table>/gi);
+    if (tablesMatch) {
+      content = parseSongContent(tablesMatch.join('\n'));
     }
   }
-
-  // If no specific container found, try to find content between markers
-  if (!content) {
-    // Look for the text area with song content
-    const songAreaMatch = html.match(/<div[^>]*class="[^"]*songtable[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-    if (songAreaMatch) {
-      content = songAreaMatch[1];
-    }
-  }
-
-  // Clean up the HTML content
-  content = cleanHtmlContent(content || html);
 
   return {
     title: title || 'שיר ללא שם',
@@ -181,36 +165,145 @@ function parseSongFromHtml(html: string, url: string): SongData {
   };
 }
 
-function cleanHtmlContent(html: string): string {
+function parseSongContent(html: string): string {
+  const lines: string[] = [];
+  
+  // Process tables - each table is typically a section
+  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+  let tableMatch;
+  
+  while ((tableMatch = tableRegex.exec(html)) !== null) {
+    const tableContent = tableMatch[1];
+    const rows = parseTableRows(tableContent);
+    lines.push(...rows);
+    lines.push(''); // Empty line between tables
+  }
+
+  // If no tables found, try processing raw HTML
+  if (lines.length === 0) {
+    return cleanFallbackContent(html);
+  }
+
+  return lines.join('\n').trim();
+}
+
+function parseTableRows(tableHtml: string): string[] {
+  const lines: string[] = [];
+  
+  // Find all rows
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let rowMatch;
+  
+  while ((rowMatch = rowRegex.exec(tableHtml)) !== null) {
+    const rowContent = rowMatch[1];
+    
+    // Find the td
+    const tdMatch = rowContent.match(/<td[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/td>/i);
+    if (!tdMatch) continue;
+    
+    const tdClass = tdMatch[1];
+    const tdContent = tdMatch[2];
+    
+    if (tdClass.includes('chords')) {
+      // This is a chords row
+      const chordsLine = parseChordsRow(tdContent);
+      if (chordsLine) {
+        lines.push(chordsLine);
+      }
+    } else if (tdClass.includes('song')) {
+      // This is a lyrics row or section title
+      const lyricsLine = parseLyricsRow(tdContent);
+      if (lyricsLine) {
+        lines.push(lyricsLine);
+      }
+    }
+  }
+  
+  return lines;
+}
+
+function parseChordsRow(html: string): string {
+  // Extract chords from spans like: <span id="c_1" class="c_C">Cm</span>
+  const chords: string[] = [];
+  const spacings: string[] = [];
+  
+  // Split by chord spans to understand spacing
+  const parts = html.split(/<span[^>]*class="c_C"[^>]*>/i);
+  
+  for (let i = 1; i < parts.length; i++) {
+    // Extract the chord name from the beginning of this part
+    const chordEndMatch = parts[i].match(/^([^<]+)<\/span>([\s&;nbsp]*)/i);
+    if (chordEndMatch) {
+      const chord = chordEndMatch[1].trim();
+      if (chord) {
+        chords.push(`[${chord}]`);
+      }
+      // Count spaces after this chord
+      const spacingAfter = chordEndMatch[2] || '';
+      const spaceCount = (spacingAfter.match(/&nbsp;/g) || []).length + 
+                         (spacingAfter.match(/\s/g) || []).length;
+      spacings.push(' '.repeat(Math.max(1, Math.floor(spaceCount / 2))));
+    }
+  }
+  
+  // Build the chord line with appropriate spacing
+  let result = '';
+  for (let i = 0; i < chords.length; i++) {
+    result += chords[i] + (spacings[i] || ' ');
+  }
+  
+  return result.trim();
+}
+
+function parseLyricsRow(html: string): string {
+  // Check if this is a section title
+  const titleMatch = html.match(/<span[^>]*class="titLine"[^>]*>([^<]*)<\/span>/i);
+  if (titleMatch) {
+    return titleMatch[1].trim();
+  }
+  
+  // Regular lyrics - clean up HTML
+  let text = html;
+  
+  // Replace &nbsp; with regular space
+  text = text.replace(/&nbsp;/g, ' ');
+  
+  // Remove HTML tags
+  text = text.replace(/<[^>]+>/g, '');
+  
+  // Decode remaining entities
+  text = text.replace(/&amp;/g, '&');
+  text = text.replace(/&lt;/g, '<');
+  text = text.replace(/&gt;/g, '>');
+  text = text.replace(/&quot;/g, '"');
+  
+  // Clean up whitespace but preserve intentional spacing
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  return text;
+}
+
+function cleanFallbackContent(html: string): string {
+  // Fallback parsing for when table structure isn't found
+  let content = html;
+  
   // Remove script and style tags
-  let content = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  content = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   content = content.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
   
-  // Convert <br> tags to newlines
+  // Convert br to newlines
   content = content.replace(/<br\s*\/?>/gi, '\n');
   
-  // Convert chord spans to marked format [CHORD]
-  // Tab4u typically wraps chords in span tags with specific classes
-  content = content.replace(/<span[^>]*class="[^"]*chords?[^"]*"[^>]*>([^<]+)<\/span>/gi, '[$1]');
-  content = content.replace(/<b[^>]*class="[^"]*chords?[^"]*"[^>]*>([^<]+)<\/b>/gi, '[$1]');
-  content = content.replace(/<strong[^>]*>([A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*(?:\/[A-G][#b]?)?)<\/strong>/gi, '[$1]');
+  // Convert chord spans to [CHORD] format
+  content = content.replace(/<span[^>]*class="c_C"[^>]*>([^<]+)<\/span>/gi, '[$1]');
   
-  // Remove remaining HTML tags but preserve structure
-  content = content.replace(/<\/?(div|p|section)[^>]*>/gi, '\n');
+  // Remove remaining HTML tags
   content = content.replace(/<[^>]+>/g, '');
   
-  // Decode HTML entities
+  // Clean up entities and whitespace
   content = content.replace(/&nbsp;/g, ' ');
   content = content.replace(/&amp;/g, '&');
-  content = content.replace(/&lt;/g, '<');
-  content = content.replace(/&gt;/g, '>');
-  content = content.replace(/&quot;/g, '"');
-  content = content.replace(/&#39;/g, "'");
-  content = content.replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)));
-  
-  // Clean up extra whitespace while preserving intentional spacing
   content = content.replace(/\n{3,}/g, '\n\n');
-  content = content.trim();
   
-  return content;
+  return content.trim();
 }

@@ -9,7 +9,7 @@ interface FloatingToolbarProps {
   onTranspositionChange: (value: number) => void;
   fontSize: number;
   onFontSizeChange: (value: number) => void;
-  scrollContainerRef: React.RefObject<HTMLElement>;
+  scrollContainerRef: React.RefObject<HTMLElement | null>;
 }
 
 export function FloatingToolbar({
