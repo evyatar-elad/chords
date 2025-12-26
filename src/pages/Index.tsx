@@ -132,6 +132,33 @@ const Index = () => {
                   />
                 </div>
 
+                {/* Page Navigation in header */}
+                {totalPages > 1 && (
+                  <div className="shrink-0 flex items-center gap-1 bg-secondary/50 rounded-full px-2 py-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={goToPrevPage}
+                      disabled={currentPage === 0}
+                      className="h-7 w-7"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground px-1 tabular-nums">
+                      {currentPage + 1} / {totalPages}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={goToNextPage}
+                      disabled={currentPage >= totalPages - 1}
+                      className="h-7 w-7"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
                 {/* Quick song input */}
                 <div className="shrink-0">
                   <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} />
@@ -152,32 +179,6 @@ const Index = () => {
               />
             </div>
             
-            {/* Page Navigation */}
-            {totalPages > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 glass rounded-full px-3 py-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={goToPrevPage}
-                  disabled={currentPage === 0}
-                  className="h-8 w-8"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-                <span className="text-sm text-muted-foreground px-2">
-                  {currentPage + 1} / {totalPages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={goToNextPage}
-                  disabled={currentPage >= totalPages - 1}
-                  className="h-8 w-8"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-              </div>
-            )}
           </main>
         </div>
       )}

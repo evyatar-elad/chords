@@ -98,8 +98,9 @@ function renderLine(line: SongLine, idx: number, transposition: number) {
 }
 
 function getColumnCount(width: number) {
-  if (width >= 1400) return 3;
-  if (width >= 1024) return 2;
+  // Container is max-w-6xl (~1152px), so lower thresholds
+  if (width >= 900) return 3;
+  if (width >= 600) return 2;
   return 1;
 }
 
@@ -148,7 +149,7 @@ export function SongDisplayPaged({
 
     if (!containerHeight || !containerWidth) return;
 
-    const gapPx = 12; // matches css gap ~0.75rem
+    const gapPx = 6; // matches css gap ~0.4rem
     const columnWidth = Math.floor(
       (containerWidth - gapPx * Math.max(0, cols - 1)) / cols,
     );
