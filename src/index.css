@@ -95,15 +95,17 @@
   .song-page {
     display: flex;
     flex-direction: row-reverse;
-    gap: 1.5rem;
+    gap: 0.75rem;
     height: 100%;
+    align-items: stretch;
   }
 
   .song-column {
     flex: 1;
     border-left: 1px solid hsl(var(--border));
-    padding-left: 1rem;
+    padding-left: 0.5rem;
     overflow: hidden;
+    min-width: 0;
   }
 
   .song-column:last-child {
@@ -115,50 +117,49 @@
     break-inside: avoid;
   }
 
-  /* Lyrics line with inline chord positioning - LTR for chords display */
+  /* Lyrics line: RTL (so both words and chords progress right->left) */
   .lyrics-line {
     display: block;
-    direction: ltr;
+    direction: rtl;
     text-align: right;
     margin-bottom: 0.5em;
     white-space: nowrap;
     padding-top: 1.3em;
   }
 
-  /* Each chord+text unit - inline display */
+  /* Each chord+text unit */
   .chord-unit {
     display: inline;
     position: relative;
     direction: rtl;
   }
 
-  /* Chord positioned above text */
+  /* Chord above lyrics: RTL and aligned to the right edge of its unit */
   .chord-above {
     position: absolute;
     top: -1.3em;
-    left: 0;
+    right: 0;
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
     font-family: var(--font-mono);
     font-size: 0.85em;
     white-space: nowrap;
-    direction: ltr;
-    text-align: left;
+    direction: rtl;
+    text-align: right;
   }
 
-  /* Text below chord */
   .chord-text {
     display: inline;
     direction: rtl;
   }
 
-  /* Chords only line (intro/transition) - RTL aligned to right */
+  /* Chords-only lines (section-only chords): allow LTR chord text, but keep line aligned to the right */
   .chords-only-line {
     display: flex;
     flex-wrap: wrap;
-    direction: rtl;
-    justify-content: flex-start;
+    direction: ltr;
+    justify-content: flex-end;
     gap: 0.5em;
     margin-bottom: 0.5em;
     max-width: 100%;
