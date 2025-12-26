@@ -7,10 +7,21 @@ interface ScrapeRequest {
   url: string;
 }
 
+interface ChordUnit {
+  chord: string | null;
+  text: string;
+}
+
+interface SongLine {
+  type: 'lyrics' | 'chords-only' | 'section' | 'empty';
+  units?: ChordUnit[];
+  text?: string;
+}
+
 interface SongData {
   title: string;
   artist: string;
-  content: string;
+  lines: SongLine[];
   transposition: number;
   hasEasyVersion: boolean;
 }
@@ -82,7 +93,7 @@ Deno.serve(async (req) => {
     // Parse the song data from the HTML
     const songData = parseSongFromHtml(html, url);
 
-    console.log('Parsed song:', songData.title, 'by', songData.artist);
+    console.log('Parsed song:', songData.title, 'by', songData.artist, 'lines:', songData.lines.length);
 
     return new Response(
       JSON.stringify({ success: true, data: songData }),
@@ -140,33 +151,33 @@ function parseSongFromHtml(html: string, url: string): SongData {
   }
 
   // Extract the song content from the songContentTPL div
-  let content = '';
+  let lines: SongLine[] = [];
   
   // Find the song content container
   const songContentMatch = html.match(/<div[^>]*id="songContentTPL"[^>]*>([\s\S]*?)<\/div>\s*(?:<div[^>]*id="|<\/div>\s*<\/div>)/i);
   
   if (songContentMatch) {
-    content = parseSongContent(songContentMatch[1]);
-    console.log('Parsed song content, length:', content.length);
+    lines = parseSongContent(songContentMatch[1]);
+    console.log('Parsed song content, lines:', lines.length);
   } else {
     // Fallback: look for tables with song/chords classes
     const tablesMatch = html.match(/<table[^>]*>[\s\S]*?class="(?:song|chords)"[\s\S]*?<\/table>/gi);
     if (tablesMatch) {
-      content = parseSongContent(tablesMatch.join('\n'));
+      lines = parseSongContent(tablesMatch.join('\n'));
     }
   }
 
   return {
     title: title || 'שיר ללא שם',
     artist: artist || 'אמן לא ידוע',
-    content,
+    lines,
     transposition,
     hasEasyVersion,
   };
 }
 
-function parseSongContent(html: string): string {
-  const lines: string[] = [];
+function parseSongContent(html: string): SongLine[] {
+  const lines: SongLine[] = [];
   
   // Process tables - each table is typically a section
   const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
@@ -174,24 +185,25 @@ function parseSongContent(html: string): string {
   
   while ((tableMatch = tableRegex.exec(html)) !== null) {
     const tableContent = tableMatch[1];
-    const rows = parseTableRows(tableContent);
-    lines.push(...rows);
-    lines.push(''); // Empty line between tables
+    const tableLines = parseTableRows(tableContent);
+    lines.push(...tableLines);
+    lines.push({ type: 'empty' }); // Empty line between tables
   }
 
-  // If no tables found, try processing raw HTML
+  // If no tables found, return empty
   if (lines.length === 0) {
-    return cleanFallbackContent(html);
+    return [];
   }
 
-  return lines.join('\n').trim();
+  return lines;
 }
 
-function parseTableRows(tableHtml: string): string[] {
-  const lines: string[] = [];
+function parseTableRows(tableHtml: string): SongLine[] {
+  const result: SongLine[] = [];
   
-  // Find all rows
+  // Find all rows in pairs (chords row followed by lyrics row)
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  const rows: { type: 'chords' | 'lyrics' | 'section'; content: string }[] = [];
   let rowMatch;
   
   while ((rowMatch = rowRegex.exec(tableHtml)) !== null) {
@@ -205,31 +217,83 @@ function parseTableRows(tableHtml: string): string[] {
     const tdContent = tdMatch[2];
     
     if (tdClass.includes('chords')) {
-      // This is a chords row
-      const chordsLine = parseChordsRow(tdContent);
-      if (chordsLine) {
-        lines.push(chordsLine);
-      }
+      rows.push({ type: 'chords', content: tdContent });
     } else if (tdClass.includes('song')) {
-      // This is a lyrics row or section title
-      const lyricsLine = parseLyricsRow(tdContent);
-      if (lyricsLine) {
-        lines.push(lyricsLine);
+      // Check if it's a section title
+      if (tdContent.includes('titLine')) {
+        rows.push({ type: 'section', content: tdContent });
+      } else {
+        rows.push({ type: 'lyrics', content: tdContent });
       }
     }
   }
   
-  return lines;
+  // Process rows - pair chords with lyrics
+  let i = 0;
+  while (i < rows.length) {
+    const row = rows[i];
+    
+    if (row.type === 'section') {
+      // Section title
+      const titleMatch = row.content.match(/<span[^>]*class="titLine"[^>]*>([^<]*)<\/span>/i);
+      if (titleMatch) {
+        result.push({ type: 'section', text: titleMatch[1].trim() });
+      }
+      i++;
+    } else if (row.type === 'chords') {
+      // Parse chords with their positions
+      const chordPositions = extractChordPositions(row.content);
+      
+      // Check if next row is lyrics
+      if (i + 1 < rows.length && rows[i + 1].type === 'lyrics') {
+        // Combine chords with lyrics
+        const lyricsText = extractLyricsText(rows[i + 1].content);
+        const units = combineChordWithLyrics(chordPositions, lyricsText);
+        
+        if (units.length > 0) {
+          result.push({ type: 'lyrics', units });
+        }
+        i += 2;
+      } else {
+        // Chords only line (intro/transition)
+        if (chordPositions.length > 0) {
+          const units: ChordUnit[] = chordPositions.map((cp, idx) => ({
+            chord: cp.chord,
+            text: idx < chordPositions.length - 1 ? '   ' : '' // spacing between chords
+          }));
+          result.push({ type: 'chords-only', units });
+        }
+        i++;
+      }
+    } else if (row.type === 'lyrics') {
+      // Lyrics without chords above
+      const lyricsText = extractLyricsText(row.content);
+      if (lyricsText.trim()) {
+        result.push({ 
+          type: 'lyrics', 
+          units: [{ chord: null, text: lyricsText }] 
+        });
+      }
+      i++;
+    } else {
+      i++;
+    }
+  }
+  
+  return result;
 }
 
-function parseChordsRow(html: string): string {
-  // Extract chords from spans - match the chord span and capture the text inside
+interface ChordPosition {
+  chord: string;
+  position: number;
+}
+
+function extractChordPositions(html: string): ChordPosition[] {
+  const chords: ChordPosition[] = [];
   const chordRegex = /<span[^>]*class="c_C"[^>]*>([^<]*)<\/span>/gi;
-  const chords: { chord: string; position: number }[] = [];
   
-  let match;
-  let lastIndex = 0;
   let processedHtml = html.replace(/&nbsp;/g, ' ');
+  let match;
   
   while ((match = chordRegex.exec(processedHtml)) !== null) {
     const chord = match[1].trim();
@@ -240,30 +304,10 @@ function parseChordsRow(html: string): string {
     }
   }
   
-  if (chords.length === 0) return '';
-  
-  // Build the chord line with proper spacing
-  let result = '';
-  let currentPos = 0;
-  
-  for (const { chord, position } of chords) {
-    // Add spaces to reach this chord's position
-    const spacesNeeded = Math.max(1, position - currentPos);
-    result += ' '.repeat(spacesNeeded) + `[${chord}]`;
-    currentPos = position + chord.length + 2; // +2 for brackets
-  }
-  
-  return result.trim();
+  return chords;
 }
 
-function parseLyricsRow(html: string): string {
-  // Check if this is a section title
-  const titleMatch = html.match(/<span[^>]*class="titLine"[^>]*>([^<]*)<\/span>/i);
-  if (titleMatch) {
-    return titleMatch[1].trim();
-  }
-  
-  // Regular lyrics - clean up HTML
+function extractLyricsText(html: string): string {
   let text = html;
   
   // Replace &nbsp; with regular space
@@ -278,33 +322,50 @@ function parseLyricsRow(html: string): string {
   text = text.replace(/&gt;/g, '>');
   text = text.replace(/&quot;/g, '"');
   
-  // Clean up whitespace but preserve intentional spacing
-  text = text.replace(/\s+/g, ' ').trim();
-  
   return text;
 }
 
-function cleanFallbackContent(html: string): string {
-  // Fallback parsing for when table structure isn't found
-  let content = html;
+function combineChordWithLyrics(chords: ChordPosition[], lyrics: string): ChordUnit[] {
+  if (chords.length === 0) {
+    return lyrics.trim() ? [{ chord: null, text: lyrics }] : [];
+  }
   
-  // Remove script and style tags
-  content = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-  content = content.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  const units: ChordUnit[] = [];
   
-  // Convert br to newlines
-  content = content.replace(/<br\s*\/?>/gi, '\n');
+  // Sort chords by position
+  const sortedChords = [...chords].sort((a, b) => a.position - b.position);
   
-  // Convert chord spans to [CHORD] format
-  content = content.replace(/<span[^>]*class="c_C"[^>]*>([^<]+)<\/span>/gi, '[$1]');
+  let lastPos = 0;
   
-  // Remove remaining HTML tags
-  content = content.replace(/<[^>]+>/g, '');
+  for (let i = 0; i < sortedChords.length; i++) {
+    const chord = sortedChords[i];
+    const nextChord = sortedChords[i + 1];
+    
+    // Determine the end position for this chord's text
+    const endPos = nextChord ? nextChord.position : lyrics.length;
+    
+    // Get the text segment for this chord
+    const textSegment = lyrics.substring(chord.position, endPos);
+    
+    // If there's text before the first chord, add it as a unit without chord
+    if (i === 0 && chord.position > 0) {
+      const beforeText = lyrics.substring(0, chord.position);
+      if (beforeText.trim()) {
+        units.push({ chord: null, text: beforeText });
+      }
+    }
+    
+    units.push({ chord: chord.chord, text: textSegment });
+    lastPos = endPos;
+  }
   
-  // Clean up entities and whitespace
-  content = content.replace(/&nbsp;/g, ' ');
-  content = content.replace(/&amp;/g, '&');
-  content = content.replace(/\n{3,}/g, '\n\n');
+  // Add any remaining text after the last chord
+  if (lastPos < lyrics.length) {
+    const remainingText = lyrics.substring(lastPos);
+    if (remainingText.trim()) {
+      units.push({ chord: null, text: remainingText });
+    }
+  }
   
-  return content.trim();
+  return units;
 }

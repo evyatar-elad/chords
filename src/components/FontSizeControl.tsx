@@ -30,7 +30,7 @@ export function FontSizeControl({
         onClick={handleDecrease}
         disabled={value <= min}
         className="h-8 w-8 text-foreground/70 hover:text-foreground hover:bg-muted disabled:opacity-30"
-        aria-label="Decrease font size"
+        aria-label="הקטן טקסט"
       >
         <span className="text-xs font-bold flex items-center gap-0.5">
           <span className="text-sm">A</span>
@@ -38,19 +38,13 @@ export function FontSizeControl({
         </span>
       </Button>
       
-      <div className="min-w-[2.5rem] text-center">
-        <span className="text-sm font-mono text-muted-foreground">
-          {value}px
-        </span>
-      </div>
-      
       <Button
         variant="ghost"
         size="icon"
         onClick={handleIncrease}
         disabled={value >= max}
         className="h-8 w-8 text-foreground/70 hover:text-foreground hover:bg-muted disabled:opacity-30"
-        aria-label="Increase font size"
+        aria-label="הגדל טקסט"
       >
         <span className="text-base font-bold flex items-center gap-0.5">
           <span className="text-lg">A</span>

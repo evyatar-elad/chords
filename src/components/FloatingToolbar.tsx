@@ -9,7 +9,8 @@ interface FloatingToolbarProps {
   onTranspositionChange: (value: number) => void;
   fontSize: number;
   onFontSizeChange: (value: number) => void;
-  scrollContainerRef: React.RefObject<HTMLElement | null>;
+  originalTransposition?: number;
+  onResetToOriginal?: () => void;
 }
 
 export function FloatingToolbar({
@@ -17,7 +18,8 @@ export function FloatingToolbar({
   onTranspositionChange,
   fontSize,
   onFontSizeChange,
-  scrollContainerRef,
+  originalTransposition,
+  onResetToOriginal,
 }: FloatingToolbarProps) {
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
@@ -28,6 +30,8 @@ export function FloatingToolbar({
           <TranspositionControl
             value={transposition}
             onChange={onTranspositionChange}
+            originalTransposition={originalTransposition}
+            onResetToOriginal={onResetToOriginal}
           />
         </div>
         
@@ -42,7 +46,7 @@ export function FloatingToolbar({
         <Separator orientation="vertical" className="h-6 bg-border/50" />
         
         {/* Auto Scroll */}
-        <AutoScrollControl containerRef={scrollContainerRef} />
+        <AutoScrollControl />
       </div>
     </div>
   );
