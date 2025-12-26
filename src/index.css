@@ -102,15 +102,14 @@
 
   .song-column {
     flex: 1;
-    border-left: 1px solid hsl(var(--border));
-    padding-left: 0.4rem;
     overflow: hidden;
     min-width: 0;
   }
 
-  .song-column:last-child {
-    border-left: none;
-    padding-left: 0;
+  /* Borders between columns - in RTL with row-reverse, first-child is rightmost */
+  .song-column:not(:first-child) {
+    border-right: 1px solid hsl(var(--border));
+    padding-right: 0.4rem;
   }
 
   .song-column > * {
@@ -134,19 +133,19 @@
     direction: rtl;
   }
 
-  /* Chord above lyrics: RTL and aligned to the right edge of its unit */
+  /* Chord above lyrics: positioned at start of text unit (left in absolute = right in RTL visual) */
   .chord-above {
     position: absolute;
     top: -1.3em;
-    right: 0;
+    left: 0;
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
     font-family: var(--font-mono);
     font-size: 0.85em;
     white-space: nowrap;
-    direction: rtl;
-    text-align: right;
+    direction: ltr;
+    unicode-bidi: isolate;
   }
 
   .chord-text {

@@ -132,32 +132,30 @@ const Index = () => {
                   />
                 </div>
 
-                {/* Page Navigation in header */}
-                {totalPages > 1 && (
-                  <div className="shrink-0 flex items-center gap-1 bg-secondary/50 rounded-full px-2 py-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={goToPrevPage}
-                      disabled={currentPage === 0}
-                      className="h-7 w-7"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <span className="text-xs text-muted-foreground px-1 tabular-nums">
-                      {currentPage + 1} / {totalPages}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={goToNextPage}
-                      disabled={currentPage >= totalPages - 1}
-                      className="h-7 w-7"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+                {/* Page Navigation in header - always visible */}
+                <div className={`shrink-0 flex items-center gap-1 bg-secondary/50 rounded-full px-2 py-1 ${totalPages <= 1 ? 'opacity-50' : ''}`}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 0 || totalPages <= 1}
+                    className="h-7 w-7"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground px-1 tabular-nums">
+                    {currentPage + 1} / {totalPages}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToNextPage}
+                    disabled={currentPage >= totalPages - 1 || totalPages <= 1}
+                    className="h-7 w-7"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </div>
 
                 {/* Quick song input */}
                 <div className="shrink-0">
@@ -169,7 +167,7 @@ const Index = () => {
 
           {/* Song Content - fills remaining height */}
           <main className="flex-1 overflow-hidden relative">
-            <div className="h-full container max-w-6xl mx-auto px-4 py-4">
+            <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-1">
               <SongDisplayPaged
                 lines={song.lines}
                 transposition={transposition}
