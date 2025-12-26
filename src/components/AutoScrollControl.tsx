@@ -3,19 +3,13 @@ import { Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
-interface AutoScrollControlProps {
-  containerRef: React.RefObject<HTMLElement | null>;
-}
-
-export function AutoScrollControl({ containerRef }: AutoScrollControlProps) {
+export function AutoScrollControl() {
   const [isScrolling, setIsScrolling] = useState(false);
   const [speed, setSpeed] = useState(30); // pixels per second
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
 
   const scroll = useCallback((currentTime: number) => {
-    if (!containerRef.current) return;
-
     if (lastTimeRef.current === 0) {
       lastTimeRef.current = currentTime;
     }
@@ -24,17 +18,17 @@ export function AutoScrollControl({ containerRef }: AutoScrollControlProps) {
     lastTimeRef.current = currentTime;
 
     const scrollAmount = speed * deltaTime;
-    containerRef.current.scrollTop += scrollAmount;
+    window.scrollBy(0, scrollAmount);
 
     // Check if we've reached the bottom
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    if (scrollTop + clientHeight >= scrollHeight) {
+    const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+    if (scrollTop + clientHeight >= scrollHeight - 10) {
       setIsScrolling(false);
       return;
     }
 
     animationRef.current = requestAnimationFrame(scroll);
-  }, [containerRef, speed]);
+  }, [speed]);
 
   useEffect(() => {
     if (isScrolling) {
@@ -67,7 +61,7 @@ export function AutoScrollControl({ containerRef }: AutoScrollControlProps) {
             ? "text-primary bg-primary/10 hover:bg-primary/20" 
             : "text-foreground/70 hover:text-foreground hover:bg-muted"
         }`}
-        aria-label={isScrolling ? "Stop auto-scroll" : "Start auto-scroll"}
+        aria-label={isScrolling ? "עצור גלילה" : "הפעל גלילה"}
       >
         {isScrolling ? (
           <Pause className="h-4 w-4" />
@@ -84,7 +78,7 @@ export function AutoScrollControl({ containerRef }: AutoScrollControlProps) {
           max={100}
           step={5}
           className="cursor-pointer"
-          aria-label="Scroll speed"
+          aria-label="מהירות גלילה"
         />
       </div>
     </div>

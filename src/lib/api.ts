@@ -1,9 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface ChordUnit {
+  chord: string | null;
+  text: string;
+}
+
+export interface SongLine {
+  type: 'lyrics' | 'chords-only' | 'section' | 'empty';
+  units?: ChordUnit[];
+  text?: string;
+}
+
 export interface SongData {
   title: string;
   artist: string;
-  content: string;
+  lines: SongLine[];
   transposition: number;
   hasEasyVersion: boolean;
 }

@@ -19,21 +19,8 @@ export function SongInput({ onSubmit, isLoading }: SongInputProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="הכנס לינק לשיר מ-tab4u.com..."
-            className="h-14 pr-4 pl-12 text-lg bg-secondary/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 text-right"
-            dir="rtl"
-            disabled={isLoading}
-          />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        </div>
-        
+    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto" dir="rtl">
+      <div className="flex gap-3 flex-row-reverse">
         <Button
           type="submit"
           disabled={!url.trim() || isLoading}
@@ -48,11 +35,20 @@ export function SongInput({ onSubmit, isLoading }: SongInputProps) {
             "הצג שיר"
           )}
         </Button>
+        
+        <div className="relative flex-1">
+          <Input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="הדבק לינק לשיר מ-tab4u.com..."
+            className="h-14 pr-4 pl-12 text-lg bg-secondary/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 text-right"
+            dir="rtl"
+            disabled={isLoading}
+          />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        </div>
       </div>
-      
-      <p className="text-center text-muted-foreground text-sm mt-3">
-        העתק לינק של שיר מ-tab4u.com והדבק כאן
-      </p>
     </form>
   );
 }

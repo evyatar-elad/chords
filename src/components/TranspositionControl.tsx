@@ -1,101 +1,74 @@
-import { useEffect, useMemo, useState } from "react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { useMemo } from "react";
+import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TranspositionControlProps {
-  value: number; // UI steps: 0.5 = half-step
+  value: number;
   onChange: (value: number) => void;
+  originalTransposition?: number;
+  onResetToOriginal?: () => void;
 }
 
-export function TranspositionControl({ value, onChange }: TranspositionControlProps) {
-  const min = -2.5;
-  const max = 3;
-
-  const clampAndSnap = (next: number) => {
-    const clamped = Math.min(max, Math.max(min, next));
-    return Math.round(clamped * 2) / 2; // snap to 0.5
-  };
-
-  const handleUp = () => {
-    onChange(clampAndSnap(value + 0.5));
-  };
-
-  const handleDown = () => {
-    onChange(clampAndSnap(value - 0.5));
-  };
-
-  const displayValue = useMemo(() => {
-    if (Object.is(value, -0)) return "0";
-    return value === 0 ? "0" : value > 0 ? `+${value}` : `${value}`;
-  }, [value]);
-
-  const [draft, setDraft] = useState(String(value));
-
-  useEffect(() => {
-    setDraft(String(value));
-  }, [value]);
-
-  const commitDraft = () => {
-    const parsed = Number(draft);
-    if (Number.isNaN(parsed)) {
-      setDraft(String(value));
-      return;
+export function TranspositionControl({ 
+  value, 
+  onChange, 
+  originalTransposition,
+  onResetToOriginal 
+}: TranspositionControlProps) {
+  // Generate options from -2.5 to 3 in 0.5 steps
+  const options = useMemo(() => {
+    const opts: number[] = [];
+    for (let v = -2.5; v <= 3; v += 0.5) {
+      opts.push(v);
     }
-    onChange(clampAndSnap(parsed));
+    return opts;
+  }, []);
+
+  const formatValue = (v: number) => {
+    if (Object.is(v, -0) || v === 0) return "0";
+    return v > 0 ? `+${v}` : `${v}`;
   };
+
+  const showResetButton = originalTransposition !== undefined && 
+                          value !== originalTransposition;
 
   return (
-    <div className="flex items-center gap-1">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleDown}
-        disabled={value <= min}
-        className="h-8 w-8 text-foreground/70 hover:text-foreground hover:bg-muted disabled:opacity-30"
-        aria-label="Transpose down"
+    <div className="flex items-center gap-2">
+      <Select
+        value={String(value)}
+        onValueChange={(v) => onChange(parseFloat(v))}
       >
-        <ChevronDown className="h-5 w-5" />
-      </Button>
-
-      <div className="min-w-[4.5rem]">
-        <Input
-          inputMode="decimal"
-          type="number"
-          step={0.5}
-          min={min}
-          max={max}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitDraft}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.currentTarget.blur();
-            }
-            if (e.key === "Escape") {
-              setDraft(String(value));
-              e.currentTarget.blur();
-            }
-          }}
-          className="h-8 px-2 text-center font-mono font-semibold text-primary bg-transparent"
-          aria-label="Transpose value"
-        />
-        <div className="sr-only" aria-live="polite">
-          {displayValue}
-        </div>
-      </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleUp}
-        disabled={value >= max}
-        className="h-8 w-8 text-foreground/70 hover:text-foreground hover:bg-muted disabled:opacity-30"
-        aria-label="Transpose up"
-      >
-        <ChevronUp className="h-5 w-5" />
-      </Button>
+        <SelectTrigger className="w-[70px] h-8 bg-transparent border-border/50 text-primary font-mono font-semibold">
+          <SelectValue>{formatValue(value)}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((opt) => (
+            <SelectItem key={opt} value={String(opt)}>
+              {formatValue(opt)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      {showResetButton && onResetToOriginal && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onResetToOriginal}
+          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+          title="חזור לגרסה קלה"
+        >
+          <RotateCcw className="h-3 w-3 ml-1" />
+          גרסה קלה
+        </Button>
+      )}
     </div>
   );
 }
-

@@ -82,30 +82,82 @@
 }
 
 @layer utilities {
-  /* Chord styling with glow effect */
+  /* Song display container */
+  .song-display {
+    font-family: var(--font-hebrew);
+    direction: rtl;
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  /* Lyrics line with inline chord positioning */
+  .lyrics-line {
+    display: flex;
+    flex-wrap: wrap;
+    direction: rtl;
+    margin-bottom: 0.1em;
+  }
+
+  /* Each chord+text unit */
+  .chord-unit {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+  }
+
+  /* Chord positioned above text */
+  .chord-above {
+    color: hsl(var(--chord));
+    text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
+    font-weight: 600;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    height: 1.3em;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  /* Text below chord */
+  .chord-text {
+    white-space: pre;
+  }
+
+  /* Chords only line (intro/transition) - LTR for Latin letters */
+  .chords-only-line {
+    display: flex;
+    flex-wrap: wrap;
+    direction: ltr;
+    gap: 0.8em;
+    margin-bottom: 0.3em;
+    padding-top: 0.2em;
+  }
+
+  .chord-item .chord {
+    color: hsl(var(--chord));
+    text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+
+  /* Section header */
+  .section-header {
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+    margin-top: 1.2em;
+    margin-bottom: 0.3em;
+  }
+
+  /* Empty line */
+  .empty-line {
+    height: 0.8em;
+  }
+
+  /* Legacy chord styling */
   .chord {
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
-  }
-
-  /* Lyrics text - Hebrew-friendly font */
-  .lyrics-text {
-    font-family: var(--font-hebrew);
-    white-space: pre-wrap;
-    line-height: 1.6;
-    direction: rtl;
-    text-align: right;
-  }
-
-  /* Chord line styling */
-  .chord-line {
-    font-family: var(--font-mono);
-    white-space: pre;
-    line-height: 1.3;
-    direction: ltr;
-    text-align: right;
-    unicode-bidi: bidi-override;
   }
 
   /* Glass effect for toolbar */
@@ -123,5 +175,18 @@
       hsl(240 15% 8%) 50%,
       hsl(240 10% 4%) 100%
     );
+  }
+
+  /* Desktop columns layout */
+  @media (min-width: 1024px) {
+    .song-display-columns {
+      column-count: 2;
+      column-gap: 2rem;
+      direction: rtl;
+    }
+    
+    .song-display-columns > * {
+      break-inside: avoid;
+    }
   }
 }

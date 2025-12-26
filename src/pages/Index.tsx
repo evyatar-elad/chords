@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
-import { Guitar, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { Guitar } from "lucide-react";
 import { SongInput } from "@/components/SongInput";
 import { SongDisplay } from "@/components/SongDisplay";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
+import { QuickSongInput } from "@/components/QuickSongInput";
 import { Button } from "@/components/ui/button";
 import { scrapeSong, SongData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -11,14 +12,15 @@ const Index = () => {
   const [song, setSong] = useState<SongData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [transposition, setTransposition] = useState(0);
+  const [originalTransposition, setOriginalTransposition] = useState(0);
   const [fontSize, setFontSize] = useState(16);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (url: string) => {
     setIsLoading(true);
     setSong(null);
     setTransposition(0);
+    setOriginalTransposition(0);
 
     try {
       const response = await scrapeSong(url);
@@ -28,6 +30,7 @@ const Index = () => {
         // Apply initial transposition from the ton parameter if exists
         if (response.data.transposition !== 0) {
           setTransposition(response.data.transposition);
+          setOriginalTransposition(response.data.transposition);
           toast({
             title: "גרסה קלה",
             description: `הטרנספוזיציה הותאמה אוטומטית ל-${response.data.transposition > 0 ? '+' : ''}${response.data.transposition}`,
@@ -55,10 +58,15 @@ const Index = () => {
   const handleBack = () => {
     setSong(null);
     setTransposition(0);
+    setOriginalTransposition(0);
+  };
+
+  const handleResetToOriginal = () => {
+    setTransposition(originalTransposition);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-dark">
+    <div className="min-h-screen bg-gradient-dark" dir="rtl">
       {!song ? (
         // Landing / Input View
         <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
@@ -67,12 +75,10 @@ const Index = () => {
               <Guitar className="w-10 h-10 text-primary" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Tab4U Viewer
+              האקורדים של אביתר
             </h1>
             <p className="text-lg text-muted-foreground max-w-md mx-auto">
-              צפה באקורדים ומילים בעיצוב נקי ומודרני,
-              <br />
-              עם כלי טרנספוזיציה בזמן אמת
+              שירים בגרסאות קלות ועוד
             </p>
           </div>
 
@@ -80,42 +86,41 @@ const Index = () => {
         </div>
       ) : (
         // Song View
-        <div className="min-h-screen flex flex-col min-h-0">
+        <div className="min-h-screen flex flex-col">
           {/* Header */}
           <header className="sticky top-0 z-40 glass">
-            <div className="container max-w-4xl mx-auto px-4 py-4">
-              <div className="flex items-center justify-between">
+            <div className="container max-w-4xl mx-auto px-4 py-3">
+              <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
+                  size="sm"
                   onClick={handleBack}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground shrink-0"
                 >
-                  <ArrowRight className="h-4 w-4 ml-2" />
                   חזור
                 </Button>
                 
-                <div className="text-center flex-1">
-                  <h1 className="text-xl font-bold text-foreground truncate">
+                <div className="flex-1 text-center min-w-0">
+                  <h1 className="text-lg font-bold text-foreground truncate">
                     {song.title}
                   </h1>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground truncate">
                     {song.artist}
                   </p>
                 </div>
-                
-                <div className="w-[72px]" /> {/* Spacer for balance */}
+
+                <div className="shrink-0">
+                  <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} />
+                </div>
               </div>
             </div>
           </header>
 
           {/* Song Content */}
-          <main 
-            ref={scrollContainerRef}
-            className="flex-1 min-h-0 overflow-y-auto pb-24"
-          >
+          <main className="flex-1 pb-32">
             <div className="container max-w-4xl mx-auto px-4 py-6">
               <SongDisplay
-                content={song.content}
+                lines={song.lines}
                 transposition={transposition}
                 fontSize={fontSize}
               />
@@ -128,7 +133,8 @@ const Index = () => {
             onTranspositionChange={setTransposition}
             fontSize={fontSize}
             onFontSizeChange={setFontSize}
-            scrollContainerRef={scrollContainerRef}
+            originalTransposition={originalTransposition}
+            onResetToOriginal={handleResetToOriginal}
           />
         </div>
       )}

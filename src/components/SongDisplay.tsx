@@ -1,97 +1,105 @@
 import { useMemo } from "react";
+import { SongLine, ChordUnit } from "@/lib/api";
 import { transposeChord } from "@/lib/transposition";
 
 interface SongDisplayProps {
-  content: string;
+  lines: SongLine[];
   transposition: number;
   fontSize: number;
 }
 
-export function SongDisplay({ content, transposition, fontSize }: SongDisplayProps) {
-  // Process the content to render chords with proper styling
-  const processedContent = useMemo(() => {
-    const lines = content.split('\n');
-    const result: React.ReactNode[] = [];
-    
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const line = lines[lineIndex];
-      
-      // Check if this line contains chords
-      const hasChords = line.includes('[');
-      
-      if (hasChords) {
-        // This is a chord line - extract and display chords
-        const chordElements: React.ReactNode[] = [];
-        let lastIndex = 0;
-        const chordRegex = /\[([^\]]+)\]/g;
-        let match;
-        
-        while ((match = chordRegex.exec(line)) !== null) {
-          // Add spacing before this chord
-          if (match.index > lastIndex) {
-            const spacing = line.slice(lastIndex, match.index);
-            chordElements.push(
-              <span key={`space-${lineIndex}-${lastIndex}`}>
-                {spacing}
-              </span>
-            );
-          }
+interface ChordUnitDisplayProps {
+  unit: ChordUnit;
+  transposition: number;
+}
+
+function ChordUnitDisplay({ unit, transposition }: ChordUnitDisplayProps) {
+  const semitones = Math.round(transposition * 2);
+  const transposedChord = unit.chord ? transposeChord(unit.chord, semitones) : null;
+  
+  return (
+    <span className="chord-unit">
+      {transposedChord && (
+        <span className="chord-above">{transposedChord}</span>
+      )}
+      <span className="chord-text">{unit.text || '\u00A0'}</span>
+    </span>
+  );
+}
+
+interface LyricsLineProps {
+  units: ChordUnit[];
+  transposition: number;
+}
+
+function LyricsLine({ units, transposition }: LyricsLineProps) {
+  return (
+    <div className="lyrics-line">
+      {units.map((unit, idx) => (
+        <ChordUnitDisplay key={idx} unit={unit} transposition={transposition} />
+      ))}
+    </div>
+  );
+}
+
+interface ChordsOnlyLineProps {
+  units: ChordUnit[];
+  transposition: number;
+}
+
+function ChordsOnlyLine({ units, transposition }: ChordsOnlyLineProps) {
+  const semitones = Math.round(transposition * 2);
+  
+  return (
+    <div className="chords-only-line">
+      {units.map((unit, idx) => (
+        <span key={idx} className="chord-item">
+          {unit.chord && (
+            <span className="chord">{transposeChord(unit.chord, semitones)}</span>
+          )}
+          {unit.text && <span>{unit.text}</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function SongDisplay({ lines, transposition, fontSize }: SongDisplayProps) {
+  const renderedLines = useMemo(() => {
+    return lines.map((line, idx) => {
+      switch (line.type) {
+        case 'lyrics':
+          return line.units ? (
+            <LyricsLine key={idx} units={line.units} transposition={transposition} />
+          ) : null;
           
-          // Transpose and add the chord
-          const originalChord = match[1];
-          const semitones = Math.round(transposition * 2); // 0.5 steps in UI = 1 semitone
-          const transposedChord = transposeChord(originalChord, semitones);
+        case 'chords-only':
+          return line.units ? (
+            <ChordsOnlyLine key={idx} units={line.units} transposition={transposition} />
+          ) : null;
           
-          chordElements.push(
-            <span key={`chord-${lineIndex}-${match.index}`} className="chord">
-              {transposedChord}
-            </span>
+        case 'section':
+          return (
+            <div key={idx} className="section-header">
+              {line.text}
+            </div>
           );
           
-          lastIndex = match.index + match[0].length;
-        }
-        
-        // Add remaining content after last chord
-        if (lastIndex < line.length) {
-          chordElements.push(
-            <span key={`end-${lineIndex}`}>
-              {line.slice(lastIndex)}
-            </span>
-          );
-        }
-        
-        result.push(
-          <div key={`chordline-${lineIndex}`} className="chord-line min-h-[1.5em]">
-            {chordElements.length > 0 ? chordElements : '\u00A0'}
-          </div>
-        );
-      } else {
-        // This is a lyrics line or section header
-        const trimmedLine = line.trim();
-        
-        // Check if it's a section header (like "פתיחה:", "פזמון:", etc.)
-        const isSectionHeader = /^[א-ת]+:$/.test(trimmedLine);
-        
-        result.push(
-          <div 
-            key={`lyrics-${lineIndex}`} 
-            className={`min-h-[1.5em] ${isSectionHeader ? 'font-semibold text-muted-foreground mt-4' : ''}`}
-          >
-            {trimmedLine || '\u00A0'}
-          </div>
-        );
+        case 'empty':
+          return <div key={idx} className="empty-line" />;
+          
+        default:
+          return null;
       }
-    }
-    
-    return result;
-  }, [content, transposition]);
+    });
+  }, [lines, transposition]);
 
   return (
     <div 
-      className="lyrics-text"
+      className="song-display"
       style={{ fontSize: `${fontSize}px` }}
     >
-      {processedContent}
+      {renderedLines}
     </div>
   );
 }
