@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -49,6 +49,7 @@
     /* Font families */
     --font-sans: 'Inter', sans-serif;
     --font-mono: 'Roboto Mono', monospace;
+    --font-hebrew: 'Rubik', 'Heebo', sans-serif;
   }
 
   * {
@@ -88,13 +89,22 @@
     font-weight: 600;
   }
 
-  /* Monospace text for lyrics */
+  /* Lyrics text - Hebrew-friendly font */
   .lyrics-text {
-    font-family: var(--font-mono);
-    white-space: pre;
-    line-height: 1.8;
+    font-family: var(--font-hebrew);
+    white-space: pre-wrap;
+    line-height: 2.2;
     direction: rtl;
     text-align: right;
+  }
+
+  /* Chord line styling */
+  .chord-line {
+    font-family: var(--font-mono);
+    white-space: pre;
+    direction: ltr;
+    text-align: right;
+    unicode-bidi: bidi-override;
   }
 
   /* Glass effect for toolbar */

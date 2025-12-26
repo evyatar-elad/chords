@@ -223,33 +223,34 @@ function parseTableRows(tableHtml: string): string[] {
 }
 
 function parseChordsRow(html: string): string {
-  // Extract chords from spans like: <span id="c_1" class="c_C">Cm</span>
-  const chords: string[] = [];
-  const spacings: string[] = [];
+  // Extract chords from spans - match the chord span and capture the text inside
+  const chordRegex = /<span[^>]*class="c_C"[^>]*>([^<]*)<\/span>/gi;
+  const chords: { chord: string; position: number }[] = [];
   
-  // Split by chord spans to understand spacing
-  const parts = html.split(/<span[^>]*class="c_C"[^>]*>/i);
+  let match;
+  let lastIndex = 0;
+  let processedHtml = html.replace(/&nbsp;/g, ' ');
   
-  for (let i = 1; i < parts.length; i++) {
-    // Extract the chord name from the beginning of this part
-    const chordEndMatch = parts[i].match(/^([^<]+)<\/span>([\s&;nbsp]*)/i);
-    if (chordEndMatch) {
-      const chord = chordEndMatch[1].trim();
-      if (chord) {
-        chords.push(`[${chord}]`);
-      }
-      // Count spaces after this chord
-      const spacingAfter = chordEndMatch[2] || '';
-      const spaceCount = (spacingAfter.match(/&nbsp;/g) || []).length + 
-                         (spacingAfter.match(/\s/g) || []).length;
-      spacings.push(' '.repeat(Math.max(1, Math.floor(spaceCount / 2))));
+  while ((match = chordRegex.exec(processedHtml)) !== null) {
+    const chord = match[1].trim();
+    if (chord) {
+      // Calculate position based on text before this match (excluding HTML tags)
+      const textBefore = processedHtml.substring(0, match.index).replace(/<[^>]+>/g, '');
+      chords.push({ chord, position: textBefore.length });
     }
   }
   
-  // Build the chord line with appropriate spacing
+  if (chords.length === 0) return '';
+  
+  // Build the chord line with proper spacing
   let result = '';
-  for (let i = 0; i < chords.length; i++) {
-    result += chords[i] + (spacings[i] || ' ');
+  let currentPos = 0;
+  
+  for (const { chord, position } of chords) {
+    // Add spaces to reach this chord's position
+    const spacesNeeded = Math.max(1, position - currentPos);
+    result += ' '.repeat(spacesNeeded) + `[${chord}]`;
+    currentPos = position + chord.length + 2; // +2 for brackets
   }
   
   return result.trim();
