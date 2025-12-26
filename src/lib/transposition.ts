@@ -91,18 +91,19 @@ function transposeNote(note: string, semitones: number): string {
  * @param semitones - Number of semitones to transpose
  */
 export function transposeChord(chord: string, semitones: number): string {
-  if (semitones === 0) return chord;
+  const semitonesInt = Math.round(semitones);
+  if (semitonesInt === 0) return chord;
   
   const parsed = parseChord(chord);
   if (!parsed) return chord;
   
   const { root, suffix, bass } = parsed;
-  const newRoot = transposeNote(root, semitones);
+  const newRoot = transposeNote(root, semitonesInt);
   
   let result = newRoot + suffix;
   
   if (bass) {
-    const newBass = transposeNote(bass, semitones);
+    const newBass = transposeNote(bass, semitonesInt);
     result += '/' + newBass;
   }
   

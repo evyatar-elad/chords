@@ -39,7 +39,8 @@ export function SongDisplay({ content, transposition, fontSize }: SongDisplayPro
           
           // Transpose and add the chord
           const originalChord = match[1];
-          const transposedChord = transposeChord(originalChord, transposition);
+          const semitones = Math.round(transposition * 2); // 0.5 steps in UI = 1 semitone
+          const transposedChord = transposeChord(originalChord, semitones);
           
           chordElements.push(
             <span key={`chord-${lineIndex}-${match.index}`} className="chord">
