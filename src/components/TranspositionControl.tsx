@@ -75,12 +75,12 @@ export function TranspositionControl({
         value={String(value)}
         onValueChange={(v) => onChange(parseFloat(v))}
       >
-        <SelectTrigger className="w-14 h-8 bg-transparent border-border/50 text-primary font-mono font-semibold px-2 [&>svg]:hidden">
-          <SelectValue>{formatValue(value)}</SelectValue>
+        <SelectTrigger className="w-12 h-8 bg-transparent border-border/50 text-primary font-mono font-semibold justify-center [&>svg]:hidden">
+          <SelectValue className="text-center">{formatValue(value)}</SelectValue>
         </SelectTrigger>
-        <SelectContent className="max-h-[300px]">
+        <SelectContent className="min-w-[60px]" style={{ maxHeight: 'none', overflow: 'visible' }}>
           {options.map((opt) => (
-            <SelectItem key={opt} value={String(opt)}>
+            <SelectItem key={opt} value={String(opt)} className="text-center justify-center">
               {formatValue(opt)}
             </SelectItem>
           ))}

@@ -82,38 +82,44 @@
 }
 
 @layer utilities {
-  /* Song display container */
+  /* Song display container - paged layout */
   .song-display {
     font-family: var(--font-hebrew);
     direction: rtl;
     text-align: right;
     line-height: 1.8;
+    height: 100%;
   }
 
-  /* Desktop columns layout - 3 columns with divider */
-  @media (min-width: 1024px) {
-    .song-display {
-      column-count: 2;
-      column-gap: 1.5rem;
-      column-rule: 1px solid hsl(var(--border));
-    }
-    
-    .song-display > * {
-      break-inside: avoid;
-    }
+  /* Paged columns layout */
+  .song-page {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 1.5rem;
+    height: 100%;
   }
 
-  @media (min-width: 1400px) {
-    .song-display {
-      column-count: 3;
-      column-gap: 1.5rem;
-    }
+  .song-column {
+    flex: 1;
+    border-left: 1px solid hsl(var(--border));
+    padding-left: 1rem;
+    overflow: hidden;
   }
 
-  /* Lyrics line with inline chord positioning - RTL direction */
+  .song-column:last-child {
+    border-left: none;
+    padding-left: 0;
+  }
+
+  .song-column > * {
+    break-inside: avoid;
+  }
+
+  /* Lyrics line with inline chord positioning - LTR for chords display */
   .lyrics-line {
     display: block;
-    direction: rtl;
+    direction: ltr;
+    text-align: right;
     margin-bottom: 0.5em;
     white-space: nowrap;
     padding-top: 1.3em;
@@ -123,13 +129,14 @@
   .chord-unit {
     display: inline;
     position: relative;
+    direction: rtl;
   }
 
-  /* Chord positioned above text - RTL direction for Hebrew lyrics */
+  /* Chord positioned above text */
   .chord-above {
     position: absolute;
     top: -1.3em;
-    right: 0;
+    left: 0;
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
@@ -143,14 +150,15 @@
   /* Text below chord */
   .chord-text {
     display: inline;
+    direction: rtl;
   }
 
-  /* Chords only line (intro/transition) - LTR for Latin letters */
+  /* Chords only line (intro/transition) - RTL aligned to right */
   .chords-only-line {
     display: flex;
     flex-wrap: wrap;
-    direction: ltr;
-    justify-content: flex-end;
+    direction: rtl;
+    justify-content: flex-start;
     gap: 0.5em;
     margin-bottom: 0.5em;
     max-width: 100%;

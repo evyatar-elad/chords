@@ -1,6 +1,5 @@
 import { TranspositionControl } from "./TranspositionControl";
 import { FontSizeControl } from "./FontSizeControl";
-import { AutoScrollControl } from "./AutoScrollControl";
 import { Separator } from "@/components/ui/separator";
 
 interface FloatingToolbarProps {
@@ -21,12 +20,7 @@ export function FloatingToolbar({
   onResetToOriginal,
 }: FloatingToolbarProps) {
   return (
-    <div className="glass rounded-full px-3 py-2 shadow-lg flex items-center gap-2">
-      {/* Auto Scroll */}
-      <AutoScrollControl />
-      
-      <Separator orientation="vertical" className="h-5 bg-border/50" />
-      
+    <div className="glass rounded-full px-3 py-1.5 shadow-lg flex items-center gap-2">
       {/* Font Size */}
       <FontSizeControl
         value={fontSize}
