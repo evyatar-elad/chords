@@ -12,7 +12,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [transposition, setTransposition] = useState(0);
   const [fontSize, setFontSize] = useState(16);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (url: string) => {
