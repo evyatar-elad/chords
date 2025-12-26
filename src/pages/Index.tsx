@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Guitar, ChevronLeft, ChevronRight } from "lucide-react";
 import { SongInput } from "@/components/SongInput";
-import { SongDisplay } from "@/components/SongDisplay";
+import { SongDisplayPaged } from "@/components/SongDisplayPaged";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
 import { QuickSongInput } from "@/components/QuickSongInput";
 import { Button } from "@/components/ui/button";
@@ -143,7 +143,7 @@ const Index = () => {
           {/* Song Content - fills remaining height */}
           <main className="flex-1 overflow-hidden relative">
             <div className="h-full container max-w-6xl mx-auto px-4 py-4">
-              <SongDisplay
+              <SongDisplayPaged
                 lines={song.lines}
                 transposition={transposition}
                 fontSize={fontSize}

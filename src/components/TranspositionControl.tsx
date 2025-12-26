@@ -66,33 +66,38 @@ export function TranspositionControl({
         size="icon"
         onClick={handleDown}
         className="h-7 w-7 text-muted-foreground hover:text-foreground"
-        title="הורד טון"
+        aria-label="הורד טון"
       >
         <ChevronDown className="h-4 w-4" />
       </Button>
-      
-      <Select
-        value={String(value)}
-        onValueChange={(v) => onChange(parseFloat(v))}
-      >
-        <SelectTrigger className="w-12 h-8 bg-transparent border-border/50 text-primary font-mono font-semibold justify-center [&>svg]:hidden">
-          <SelectValue className="text-center">{formatValue(value)}</SelectValue>
+
+      <Select value={String(value)} onValueChange={(v) => onChange(parseFloat(v))}>
+        <SelectTrigger className="w-16 h-8 bg-transparent border-border/50 text-primary font-mono font-semibold justify-center tabular-nums [&>svg]:hidden">
+          <SelectValue className="text-center tabular-nums">
+            {formatValue(value)}
+          </SelectValue>
         </SelectTrigger>
-        <SelectContent className="min-w-[60px]" style={{ maxHeight: 'none', overflow: 'visible' }}>
+        <SelectContent className="min-w-[72px] max-h-none overflow-visible">
           {options.map((opt) => (
-            <SelectItem key={opt} value={String(opt)} className="text-center justify-center">
-              {formatValue(opt)}
+            <SelectItem
+              key={opt}
+              value={String(opt)}
+              className="justify-center text-center"
+            >
+              <span className="w-full text-center tabular-nums">
+                {formatValue(opt)}
+              </span>
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      
+
       <Button
         variant="ghost"
         size="icon"
         onClick={handleUp}
         className="h-7 w-7 text-muted-foreground hover:text-foreground"
-        title="העלה טון"
+        aria-label="העלה טון"
       >
         <ChevronUp className="h-4 w-4" />
       </Button>
@@ -105,11 +110,10 @@ export function TranspositionControl({
           onClick={isAtOriginal ? undefined : onResetToOriginal}
           disabled={isAtOriginal}
           className={`h-7 px-2 text-xs mr-1 ${
-            isAtOriginal 
-              ? "text-primary/50 cursor-default" 
+            isAtOriginal
+              ? "text-primary/50 cursor-default"
               : "text-muted-foreground hover:text-foreground"
           }`}
-          title={isAtOriginal ? "גרסה קלה מוצגת" : "חזור לגרסה קלה"}
         >
           גרסה קלה
         </Button>
