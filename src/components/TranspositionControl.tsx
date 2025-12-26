@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { RotateCcw } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -36,19 +36,49 @@ export function TranspositionControl({
     return v > 0 ? `+${v}` : `${v}`;
   };
 
-  const showResetButton = originalTransposition !== undefined && 
-                          value !== originalTransposition;
+  const isAtOriginal = originalTransposition !== undefined && 
+                       value === originalTransposition;
+
+  const handleUp = () => {
+    const currentIndex = options.indexOf(value);
+    if (currentIndex < options.length - 1) {
+      onChange(options[currentIndex + 1]);
+    } else {
+      // Cycle to beginning
+      onChange(options[0]);
+    }
+  };
+
+  const handleDown = () => {
+    const currentIndex = options.indexOf(value);
+    if (currentIndex > 0) {
+      onChange(options[currentIndex - 1]);
+    } else {
+      // Cycle to end
+      onChange(options[options.length - 1]);
+    }
+  };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleDown}
+        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+        title="הורד טון"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </Button>
+      
       <Select
         value={String(value)}
         onValueChange={(v) => onChange(parseFloat(v))}
       >
-        <SelectTrigger className="w-20 h-8 bg-transparent border-border/50 text-primary font-mono font-semibold">
+        <SelectTrigger className="w-14 h-8 bg-transparent border-border/50 text-primary font-mono font-semibold px-2 [&>svg]:hidden">
           <SelectValue>{formatValue(value)}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[300px]">
           {options.map((opt) => (
             <SelectItem key={opt} value={String(opt)}>
               {formatValue(opt)}
@@ -57,15 +87,30 @@ export function TranspositionControl({
         </SelectContent>
       </Select>
       
-      {showResetButton && onResetToOriginal && (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleUp}
+        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+        title="העלה טון"
+      >
+        <ChevronUp className="h-4 w-4" />
+      </Button>
+
+      {/* Easy version button - always visible */}
+      {originalTransposition !== undefined && onResetToOriginal && (
         <Button
           variant="ghost"
           size="sm"
-          onClick={onResetToOriginal}
-          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-          title="חזור לגרסה קלה"
+          onClick={isAtOriginal ? undefined : onResetToOriginal}
+          disabled={isAtOriginal}
+          className={`h-7 px-2 text-xs mr-1 ${
+            isAtOriginal 
+              ? "text-primary/50 cursor-default" 
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          title={isAtOriginal ? "גרסה קלה מוצגת" : "חזור לגרסה קלה"}
         >
-          <RotateCcw className="h-3 w-3 ml-1" />
           גרסה קלה
         </Button>
       )}

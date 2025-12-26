@@ -17,7 +17,6 @@ function ChordUnitDisplay({ unit, transposition }: ChordUnitDisplayProps) {
   const semitones = Math.round(transposition * 2);
   const transposedChord = unit.chord ? transposeChord(unit.chord, semitones) : null;
   
-  // Render each character separately to prevent layout issues
   const text = unit.text || '\u00A0';
   
   if (!transposedChord) {

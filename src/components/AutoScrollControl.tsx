@@ -1,17 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 
 export function AutoScrollControl() {
   const [isScrolling, setIsScrolling] = useState(false);
-  const [speed, setSpeed] = useState(50); // 1-100 scale, maps to 10-150 px/sec
+  const [speed, setSpeed] = useState(50); // Base speed, adjustable with +/-
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
 
-  // Map speed value (1-100) to pixels per second (10-150)
+  // Map speed value to pixels per second (30-120 range for comfortable reading)
   const getPixelsPerSecond = useCallback((speedValue: number) => {
-    return 10 + (speedValue / 100) * 140;
+    return 30 + (speedValue / 100) * 90;
   }, []);
 
   const scroll = useCallback((currentTime: number) => {
@@ -57,20 +56,16 @@ export function AutoScrollControl() {
     setIsScrolling(!isScrolling);
   };
 
+  const increaseSpeed = () => {
+    setSpeed(prev => Math.min(100, prev + 15));
+  };
+
+  const decreaseSpeed = () => {
+    setSpeed(prev => Math.max(0, prev - 15));
+  };
+
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-20">
-        <Slider
-          value={[speed]}
-          onValueChange={([newSpeed]) => setSpeed(newSpeed)}
-          min={1}
-          max={100}
-          step={1}
-          className="cursor-pointer"
-          aria-label="מהירות גלילה"
-        />
-      </div>
-      
+    <div className="flex items-center gap-1">
       <Button
         variant="ghost"
         size="icon"
@@ -88,7 +83,30 @@ export function AutoScrollControl() {
           <Play className="h-4 w-4" />
         )}
       </Button>
+      
+      {isScrolling && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={decreaseSpeed}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            aria-label="האט"
+          >
+            <Minus className="h-3 w-3" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={increaseSpeed}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            aria-label="האץ"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </>
+      )}
     </div>
   );
 }
-
