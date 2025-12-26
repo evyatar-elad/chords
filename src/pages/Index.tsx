@@ -87,9 +87,9 @@ const Index = () => {
       ) : (
         // Song View
         <div className="min-h-screen flex flex-col">
-          {/* Header */}
+          {/* Header with integrated toolbar */}
           <header className="sticky top-0 z-40 glass">
-            <div className="container max-w-5xl mx-auto px-4 py-3">
+            <div className="container max-w-6xl mx-auto px-4 py-2">
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
@@ -109,17 +109,29 @@ const Index = () => {
                   </p>
                 </div>
 
-                {/* Inline song input */}
-                <div className="shrink-0 flex items-center gap-2">
+                {/* Quick song input */}
+                <div className="shrink-0">
                   <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} />
                 </div>
+              </div>
+              
+              {/* Toolbar integrated in header */}
+              <div className="flex justify-center mt-2">
+                <FloatingToolbar
+                  transposition={transposition}
+                  onTranspositionChange={setTransposition}
+                  fontSize={fontSize}
+                  onFontSizeChange={setFontSize}
+                  originalTransposition={originalTransposition}
+                  onResetToOriginal={handleResetToOriginal}
+                />
               </div>
             </div>
           </header>
 
           {/* Song Content */}
-          <main className="flex-1 pb-40">
-            <div className="container max-w-5xl mx-auto px-4 py-6">
+          <main className="flex-1">
+            <div className="container max-w-6xl mx-auto px-4 py-6">
               <SongDisplay
                 lines={song.lines}
                 transposition={transposition}
@@ -127,16 +139,6 @@ const Index = () => {
               />
             </div>
           </main>
-
-          {/* Floating Toolbar */}
-          <FloatingToolbar
-            transposition={transposition}
-            onTranspositionChange={setTransposition}
-            fontSize={fontSize}
-            onFontSizeChange={setFontSize}
-            originalTransposition={originalTransposition}
-            onResetToOriginal={handleResetToOriginal}
-          />
         </div>
       )}
     </div>
