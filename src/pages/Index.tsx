@@ -89,8 +89,8 @@ const Index = () => {
         <div className="min-h-screen flex flex-col">
           {/* Header */}
           <header className="sticky top-0 z-40 glass">
-            <div className="container max-w-4xl mx-auto px-4 py-3">
-              <div className="flex items-center gap-4">
+            <div className="container max-w-5xl mx-auto px-4 py-3">
+              <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -100,16 +100,17 @@ const Index = () => {
                   חזור
                 </Button>
                 
-                <div className="flex-1 text-center min-w-0">
-                  <h1 className="text-lg font-bold text-foreground truncate">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg font-bold text-foreground truncate text-center">
                     {song.title}
                   </h1>
-                  <p className="text-sm text-muted-foreground truncate">
+                  <p className="text-sm text-muted-foreground truncate text-center">
                     {song.artist}
                   </p>
                 </div>
 
-                <div className="shrink-0">
+                {/* Inline song input */}
+                <div className="shrink-0 flex items-center gap-2">
                   <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} />
                 </div>
               </div>
@@ -117,8 +118,8 @@ const Index = () => {
           </header>
 
           {/* Song Content */}
-          <main className="flex-1 pb-32">
-            <div className="container max-w-4xl mx-auto px-4 py-6">
+          <main className="flex-1 pb-40">
+            <div className="container max-w-5xl mx-auto px-4 py-6">
               <SongDisplay
                 lines={song.lines}
                 transposition={transposition}
