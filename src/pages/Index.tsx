@@ -80,7 +80,7 @@ const Index = () => {
         </div>
       ) : (
         // Song View
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col min-h-0">
           {/* Header */}
           <header className="sticky top-0 z-40 glass">
             <div className="container max-w-4xl mx-auto px-4 py-4">
@@ -111,7 +111,7 @@ const Index = () => {
           {/* Song Content */}
           <main 
             ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto pb-24"
+            className="flex-1 min-h-0 overflow-y-auto pb-24"
           >
             <div className="container max-w-4xl mx-auto px-4 py-6">
               <SongDisplay
