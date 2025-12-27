@@ -65,12 +65,13 @@ export function SongDisplayPaged({
 
   const [columnCount, setColumnCount] = useState(1);
   const [pages, setPages] = useState<SongLine[][][]>([]);
+  const [measureKey, setMeasureKey] = useState(0);
 
   const inputSignature = useMemo(() => {
-    return `${lines.length}|${transposition}|${fontSize}`;
-  }, [lines.length, transposition, fontSize]);
+    return `${lines.length}|${transposition}|${fontSize}|${measureKey}`;
+  }, [lines.length, transposition, fontSize, measureKey]);
 
-  // Track container width for column count
+  // Track container size changes (both width AND height)
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -78,12 +79,23 @@ export function SongDisplayPaged({
     const ro = new ResizeObserver(() => {
       const width = el.clientWidth || window.innerWidth;
       setColumnCount(getColumnCount(width));
+      // Trigger re-measurement when container size changes
+      setMeasureKey(k => k + 1);
     });
 
     ro.observe(el);
     setColumnCount(getColumnCount(el.clientWidth || window.innerWidth));
 
     return () => ro.disconnect();
+  }, []);
+
+  // Wait for fonts to load, then re-measure
+  useEffect(() => {
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        setMeasureKey(k => k + 1);
+      });
+    }
   }, []);
 
   // Calculate pagination based on available height
@@ -95,8 +107,13 @@ export function SongDisplayPaged({
     const cs = window.getComputedStyle(container);
     const padTop = parseFloat(cs.paddingTop) || 0;
     const padBottom = parseFloat(cs.paddingBottom) || 0;
-    // Extra safety margin to ensure content stays well within viewport
-    const safetyPx = 48;
+    
+    // Dynamic safety margin: ~2 lines worth of space
+    // lineHeight is 1.8, so one line ≈ fontSize * 1.8
+    // We want 2+ lines of safety
+    const lineHeightPx = fontSize * 1.8;
+    const safetyPx = Math.max(60, lineHeightPx * 2.5);
+    
     const containerHeight = Math.max(0, container.clientHeight - padTop - padBottom - safetyPx);
     const containerWidth = container.clientWidth;
     const cols = columnCount;
@@ -110,58 +127,64 @@ export function SongDisplayPaged({
     measure.style.width = `${columnWidth}px`;
     measure.style.fontSize = `${fontSize}px`;
 
-    const raf = requestAnimationFrame(() => {
-      const nodes = measure.querySelectorAll<HTMLElement>("[data-line-idx]");
-      if (!nodes.length) {
-        setPages([[lines]]);
-        return;
-      }
-
-      const heights: number[] = [];
-      nodes.forEach((node) => {
-        heights.push(Math.ceil(node.getBoundingClientRect().height));
-      });
-
-      const newPages: SongLine[][][] = [];
-      let pageCols: SongLine[][] = [];
-      let colLines: SongLine[] = [];
-      let colHeight = 0;
-
-      for (let i = 0; i < lines.length; i++) {
-        const h = heights[i] ?? 0;
-
-        if (colLines.length > 0 && colHeight + h > containerHeight) {
-          pageCols.push(colLines);
-          colLines = [];
-          colHeight = 0;
-
-          if (pageCols.length === cols) {
-            newPages.push(pageCols);
-            pageCols = [];
-          }
+    // Double RAF for stability after layout
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        const nodes = measure.querySelectorAll<HTMLElement>("[data-line-idx]");
+        if (!nodes.length) {
+          setPages([[lines]]);
+          return;
         }
 
-        colLines.push(lines[i]);
-        colHeight += h;
-      }
+        const heights: number[] = [];
+        nodes.forEach((node) => {
+          // Use offsetHeight for more stable measurement
+          heights.push(Math.ceil(node.offsetHeight));
+        });
 
-      if (colLines.length > 0) {
-        pageCols.push(colLines);
-      }
-      if (pageCols.length > 0) {
-        newPages.push(pageCols);
-      }
+        const newPages: SongLine[][][] = [];
+        let pageCols: SongLine[][] = [];
+        let colLines: SongLine[] = [];
+        let colHeight = 0;
 
-      const padded = newPages.map((p) => {
-        const copy = [...p];
-        while (copy.length < cols) copy.push([]);
-        return copy;
+        for (let i = 0; i < lines.length; i++) {
+          const h = heights[i] ?? 0;
+
+          if (colLines.length > 0 && colHeight + h > containerHeight) {
+            pageCols.push(colLines);
+            colLines = [];
+            colHeight = 0;
+
+            if (pageCols.length === cols) {
+              newPages.push(pageCols);
+              pageCols = [];
+            }
+          }
+
+          colLines.push(lines[i]);
+          colHeight += h;
+        }
+
+        if (colLines.length > 0) {
+          pageCols.push(colLines);
+        }
+        if (pageCols.length > 0) {
+          newPages.push(pageCols);
+        }
+
+        const padded = newPages.map((p) => {
+          const copy = [...p];
+          while (copy.length < cols) copy.push([]);
+          return copy;
+        });
+
+        setPages(padded);
       });
 
-      setPages(padded);
+      return () => cancelAnimationFrame(raf2);
     });
 
-    return () => cancelAnimationFrame(raf);
+    return () => cancelAnimationFrame(raf1);
   }, [inputSignature, lines, fontSize, transposition, columnCount]);
 
   useEffect(() => {

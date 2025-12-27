@@ -8,27 +8,99 @@ interface LyricsLinePositionedProps {
   transposition: number;
 }
 
+/**
+ * Scan-forward tokenizer: extracts chords one-by-one from a potentially concatenated string.
+ * Handles cases like "E7Am", "AmDm", "Dm7G7", "Cadd9Em7", slash chords "C/G", etc.
+ */
 function normalizeChordTokens(chordLabel: string): string[] {
   const raw = (chordLabel ?? "").trim();
   if (!raw) return [];
 
-  // If Tab4U returned concatenated chords (e.g., "E7Am" or "AmDm"),
-  // split before any root letter A-G that starts a new chord.
-  // Handle cases like "E7Am", "AmDm", "Dm7G7" etc.
-  // Match: letter A-G optionally followed by # or b, then modifiers (m, 7, maj, dim, sus, add, etc.)
-  // Don't split slash-chords like "C/G"
-  const chordPattern = /([A-G][#b]?(?:m(?:aj)?|M|dim|aug|sus[24]?|add\d+|[0-9]+)?(?:\/[A-G][#b]?)?)/g;
-  const matches = raw.match(chordPattern);
-  
-  if (matches && matches.length > 1) {
-    return matches.map((t) => t.trim()).filter(Boolean);
+  const tokens: string[] = [];
+  let i = 0;
+
+  while (i < raw.length) {
+    // Skip non-chord characters (spaces, parentheses, commas, bidi marks)
+    if (/[\s(),\u200E\u200F\u202A-\u202E\u2066-\u2069]/.test(raw[i])) {
+      i++;
+      continue;
+    }
+
+    // Check for chord root: A-G
+    if (/[A-G]/.test(raw[i])) {
+      let chord = raw[i];
+      i++;
+
+      // Optional sharp or flat
+      if (i < raw.length && /[#b♯♭]/.test(raw[i])) {
+        chord += raw[i];
+        i++;
+      }
+
+      // Consume modifiers: m, M, maj, min, dim, aug, sus, add, numbers, etc.
+      // Continue until we hit another root letter (A-G) or end
+      while (i < raw.length) {
+        const ch = raw[i];
+        
+        // If we hit a slash, check if it's a bass note (slash chord)
+        if (ch === '/') {
+          // Look ahead for bass note
+          if (i + 1 < raw.length && /[A-G]/.test(raw[i + 1])) {
+            chord += ch;
+            i++;
+            chord += raw[i]; // bass root
+            i++;
+            // Optional sharp/flat on bass
+            if (i < raw.length && /[#b♯♭]/.test(raw[i])) {
+              chord += raw[i];
+              i++;
+            }
+          } else {
+            break;
+          }
+          continue;
+        }
+
+        // If we hit another root letter, stop (new chord starts)
+        if (/[A-G]/.test(ch) && !/[0-9]/.test(raw[i - 1] || '')) {
+          // But check if it's part of "add9", "sus4", "maj7" etc.
+          // Letters m, a, d, s, u, i, g are valid modifier chars
+          const lowerCh = ch.toLowerCase();
+          if (!['a', 'd', 's', 'u', 'i', 'g', 'm'].includes(lowerCh)) {
+            break; // It's a new chord root
+          }
+          // Check context: is this likely a modifier or a new chord?
+          // If preceded by a letter that makes sense (like 'm' for 'maj'), continue
+          // Otherwise if it's A-G uppercase and previous was a number, it's a new chord
+          if (ch === ch.toUpperCase() && /[0-9]/.test(raw[i - 1] || '')) {
+            break;
+          }
+        }
+
+        // Valid modifier characters: letters, numbers
+        if (/[a-zA-Z0-9]/.test(ch)) {
+          chord += ch;
+          i++;
+        } else {
+          break;
+        }
+      }
+
+      if (chord) {
+        tokens.push(chord);
+      }
+    } else {
+      // Skip unknown character
+      i++;
+    }
   }
 
-  // Fallback: split on spaces
-  return raw
-    .split(/\s+/)
-    .map((t) => t.trim())
-    .filter(Boolean);
+  // If tokenizer found nothing, fall back to space-split
+  if (tokens.length === 0 && raw.length > 0) {
+    return raw.split(/\s+/).map(t => t.trim()).filter(Boolean);
+  }
+
+  return tokens;
 }
 
 function transposeChordLabel(chordLabel: string, semitones: number): string {

@@ -78,12 +78,14 @@
     display: flex;
     flex-direction: row;
     height: 100%;
+    overflow: hidden;
   }
 
   .song-col {
     flex: 1;
     min-width: 0;
     padding: 0 0.75rem;
+    overflow: hidden;
   }
 
   .song-col:first-child {
