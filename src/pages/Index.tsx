@@ -64,7 +64,7 @@ const Index = () => {
         goToNextPage();
       } else if (e.key === "ArrowRight") {
         goToPrevPage();
-      } else if ((e.ctrlKey || e.metaKey) && (e.key === "d" || e.key === "D")) {
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "d" || e.key === "D")) {
         e.preventDefault();
         setDebugPagination((v) => {
           const next = !v;
@@ -133,6 +133,14 @@ const Index = () => {
                 onFontSizeChange={setFontSize}
                 originalTransposition={originalTransposition}
                 onResetToOriginal={handleResetToOriginal}
+                debug={debugPagination}
+                onDebugToggle={() => {
+                  setDebugPagination((v) => {
+                    const next = !v;
+                    localStorage.setItem("debugPagination", next ? "1" : "0");
+                    return next;
+                  });
+                }}
               />
             </div>
 
