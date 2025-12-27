@@ -101,9 +101,7 @@
   /* ===== LYRICS ROW - Segment-based ===== */
   
   .lyrics-row {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
+    display: inline;
     direction: rtl;
     text-align: right;
     margin-bottom: 0.25em;
@@ -111,14 +109,12 @@
 
   /* Each segment: chord on top, text on bottom */
   .segment {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: flex-start;
-    /* Prevent super-tiny segments from isolating 1-2 letters on a new line */
-    min-width: max-content;
+    display: inline-block;
+    vertical-align: top;
   }
 
   .segment-chord {
+    display: block;
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
@@ -128,9 +124,11 @@
     min-height: 1.3em;
     direction: ltr;
     unicode-bidi: isolate;
+    text-align: left;
   }
 
   .segment-text {
+    display: block;
     white-space: pre;
     direction: rtl;
     unicode-bidi: plaintext;
@@ -138,20 +136,25 @@
 
   /* Chords-only line */
   .chords-only-line-new {
-    display: flex;
-    flex-wrap: wrap;
+    display: block;
     direction: rtl;
-    justify-content: flex-start;
-    gap: 0.75em;
+    text-align: right;
     margin-bottom: 0.5em;
   }
 
   .chord-item-new {
+    display: inline-block;
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
     font-family: var(--font-mono);
     direction: ltr;
+    unicode-bidi: isolate;
+    margin-left: 0.75em;
+  }
+  
+  .chord-item-new:last-child {
+    margin-left: 0;
   }
 
   /* Section header */
