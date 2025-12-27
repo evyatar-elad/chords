@@ -140,12 +140,10 @@
     unicode-bidi: isolate;
   }
 
-  /* Wrap only BETWEEN words (collapse extra spaces), avoids random gaps */
+  /* Preserve spaces inside text, allow wrap between segments */
   .segment-text {
     display: inline;
-    white-space: normal;
-    word-break: keep-all;
-    overflow-wrap: normal;
+    white-space: pre-wrap;
     direction: rtl;
     unicode-bidi: plaintext;
   }
