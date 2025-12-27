@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useMemo } from "react";
 import type { ChordPosition } from "./types";
 import { transposeChord } from "@/lib/transposition";
 
@@ -9,78 +9,74 @@ interface LyricsLinePositionedProps {
 }
 
 /**
- * Deterministic renderer:
- * - Render the lyrics as ONE plain RTL text node (prevents Hebrew corruption)
- * - Place chords above using DOM Range caret measurement at character offsets
+ * Simple segment-based approach:
+ * - Split lyrics into segments by chord positions
+ * - Each segment = column (chord above + text below)
+ * - Line direction RTL ensures right-to-left flow
+ * - Text within each segment stays intact (no character splitting)
  */
 export function LyricsLinePositioned({
   lyrics,
   chords,
   transposition,
 }: LyricsLinePositionedProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLSpanElement>(null);
-  const [placed, setPlaced] = useState<Array<{ chord: string; rightPx: number }>>([]);
-
   const semitones = Math.round(transposition * 2);
 
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    const textEl = textRef.current;
-
-    if (!container || !textEl) return;
-
-    const textNode = textEl.firstChild;
-    if (!textNode || textNode.nodeType !== Node.TEXT_NODE || chords.length === 0) {
-      setPlaced([]);
-      return;
+  const segments = useMemo(() => {
+    if (!lyrics) return [];
+    
+    if (chords.length === 0) {
+      return [{ text: lyrics, chord: null as string | null }];
     }
 
-    const containerRect = container.getBoundingClientRect();
-    const tn = textNode as Text;
+    // Sort chords by 'at' (should already be sorted, but ensure)
+    const sorted = [...chords].sort((a, b) => a.at - b.at);
+    const result: Array<{ text: string; chord: string | null }> = [];
 
-    const next: Array<{ chord: string; rightPx: number }> = [];
+    let lastEnd = 0;
 
-    for (const { chord, at } of chords) {
-      const pos = Math.min(Math.max(0, at), tn.length);
-      try {
-        const range = document.createRange();
-        range.setStart(tn, pos);
-        range.setEnd(tn, pos);
+    for (let i = 0; i < sorted.length; i++) {
+      const { chord, at } = sorted[i];
+      const clampedAt = Math.min(Math.max(0, at), lyrics.length);
 
-        // In RTL, the caret rect's LEFT corresponds to the visual insertion point.
-        const rect = range.getBoundingClientRect();
-        if (rect && rect.width !== 0 || rect.height !== 0) {
-          const rightPx = Math.max(0, containerRect.right - rect.left);
-          next.push({
-            chord: transposeChord(chord, semitones),
-            rightPx,
-          });
-        }
-      } catch {
-        // ignore
+      // Any text before this chord position (no chord above it)
+      if (clampedAt > lastEnd) {
+        result.push({ text: lyrics.slice(lastEnd, clampedAt), chord: null });
       }
+
+      // This chord's segment extends to the next chord (or end of line)
+      const nextAt = sorted[i + 1]?.at ?? lyrics.length;
+      const clampedNext = Math.min(Math.max(clampedAt, nextAt), lyrics.length);
+      const segmentText = lyrics.slice(clampedAt, clampedNext);
+
+      result.push({
+        text: segmentText || "\u00A0",
+        chord: transposeChord(chord, semitones),
+      });
+
+      lastEnd = clampedNext;
     }
 
-    setPlaced(next);
+    // Remaining text after last chord
+    if (lastEnd < lyrics.length) {
+      result.push({ text: lyrics.slice(lastEnd), chord: null });
+    }
+
+    return result;
   }, [lyrics, chords, semitones]);
 
+  if (segments.length === 0) {
+    return <div className="empty-line" />;
+  }
+
   return (
-    <div ref={containerRef} className="lyrics-line-measured">
-      <div className="chords-layer" aria-hidden="true">
-        {placed.map((c, i) => (
-          <span
-            key={i}
-            className="measured-chord"
-            style={{ right: `${c.rightPx}px` }}
-          >
-            {c.chord}
-          </span>
-        ))}
-      </div>
-      <span ref={textRef} className="lyrics-text-plain">
-        {lyrics}
-      </span>
+    <div className="lyrics-row">
+      {segments.map((seg, idx) => (
+        <span key={idx} className="segment">
+          <span className="segment-chord">{seg.chord || "\u00A0"}</span>
+          <span className="segment-text">{seg.text}</span>
+        </span>
+      ))}
     </div>
   );
 }
