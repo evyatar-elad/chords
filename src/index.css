@@ -106,38 +106,35 @@
     min-width: 0;
   }
 
-  /* Borders between columns - in RTL with row-reverse, first-child is rightmost */
-  .song-column:not(:first-child) {
-    border-right: 1px solid hsl(var(--border));
-    padding-right: 0.4rem;
+  /* Borders between columns: with row-reverse, last-child is visually leftmost */
+  .song-column:not(:last-child) {
+    border-left: 1px solid hsl(var(--border));
   }
 
   .song-column > * {
     break-inside: avoid;
   }
 
-  /* Lyrics line: RTL (so both words and chords progress right->left) */
+  /* Lyrics line: RTL (words progress right->left), allow wrapping */
   .lyrics-line {
     display: block;
     direction: rtl;
     text-align: right;
     margin-bottom: 0.5em;
-    white-space: nowrap;
-    padding-top: 1.3em;
+    white-space: normal;
   }
 
-  /* Each chord+text unit */
+  /* Each chord+text unit (two-row grid: chord above, lyric below) */
   .chord-unit {
-    display: inline;
-    position: relative;
-    direction: rtl;
+    display: inline-grid;
+    grid-template-rows: auto auto;
+    align-items: end;
+    line-height: 1.1;
   }
 
-  /* Chord above lyrics: positioned at start of text unit (left in absolute = right in RTL visual) */
   .chord-above {
-    position: absolute;
-    top: -1.3em;
-    left: 0;
+    grid-row: 1;
+    justify-self: end;
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
@@ -146,12 +143,15 @@
     white-space: nowrap;
     direction: ltr;
     unicode-bidi: isolate;
+    line-height: 1;
   }
 
   .chord-text {
+    grid-row: 2;
     display: inline;
     direction: rtl;
   }
+
 
   /* Chords-only lines (no lyrics): LTR aligned to the left, allow wrapping */
   .chords-only-line {

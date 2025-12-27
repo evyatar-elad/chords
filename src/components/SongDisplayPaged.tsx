@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { SongLine, ChordUnit } from "@/lib/api";
-import { transposeChord } from "@/lib/transposition";
+import type { SongLine } from "@/lib/api";
+import { renderSongLine } from "@/components/song/songLineRenderers";
 
 interface SongDisplayPagedProps {
   lines: SongLine[];
@@ -8,93 +8,6 @@ interface SongDisplayPagedProps {
   fontSize: number;
   currentPage?: number;
   onTotalPagesChange?: (total: number) => void;
-}
-
-interface ChordUnitDisplayProps {
-  unit: ChordUnit;
-  transposition: number;
-}
-
-function ChordUnitDisplay({ unit, transposition }: ChordUnitDisplayProps) {
-  const semitones = Math.round(transposition * 2);
-  const transposedChord = unit.chord ? transposeChord(unit.chord, semitones) : null;
-
-  const text = unit.text || "\u00A0";
-
-  if (!transposedChord) {
-    return <span>{text}</span>;
-  }
-
-  return (
-    <span className="chord-unit">
-      <span className="chord-above">{transposedChord}</span>
-      <span className="chord-text">{text}</span>
-    </span>
-  );
-}
-
-interface LyricsLineProps {
-  units: ChordUnit[];
-  transposition: number;
-}
-
-function LyricsLine({ units, transposition }: LyricsLineProps) {
-  return (
-    <div className="lyrics-line">
-      {units.map((unit, idx) => (
-        <ChordUnitDisplay key={idx} unit={unit} transposition={transposition} />
-      ))}
-    </div>
-  );
-}
-
-interface ChordsOnlyLineProps {
-  units: ChordUnit[];
-  transposition: number;
-}
-
-function ChordsOnlyLine({ units, transposition }: ChordsOnlyLineProps) {
-  const semitones = Math.round(transposition * 2);
-
-  return (
-    <div className="chords-only-line">
-      {units.map((unit, idx) => (
-        <span key={idx} className="chord-item">
-          {unit.chord && (
-            <span className="chord">{transposeChord(unit.chord, semitones)}</span>
-          )}
-          {unit.text && <span>{unit.text}</span>}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function renderLine(line: SongLine, idx: number, transposition: number) {
-  switch (line.type) {
-    case "lyrics":
-      return line.units ? (
-        <LyricsLine key={idx} units={line.units} transposition={transposition} />
-      ) : null;
-
-    case "chords-only":
-      return line.units ? (
-        <ChordsOnlyLine key={idx} units={line.units} transposition={transposition} />
-      ) : null;
-
-    case "section":
-      return (
-        <div key={idx} className="section-header">
-          {line.text}
-        </div>
-      );
-
-    case "empty":
-      return <div key={idx} className="empty-line" />;
-
-    default:
-      return null;
-  }
 }
 
 function getColumnCount(width: number) {
@@ -143,7 +56,14 @@ export function SongDisplayPaged({
     const measure = measureRef.current;
     if (!container || !measure) return;
 
-    const containerHeight = container.clientHeight;
+    const cs = window.getComputedStyle(container);
+    const padY =
+      (parseFloat(cs.paddingTop || "0") || 0) + (parseFloat(cs.paddingBottom || "0") || 0);
+
+    // Safety margin to prevent rounding from cutting the last line
+    const safetyPx = 8;
+
+    const containerHeight = Math.max(0, container.clientHeight - padY - safetyPx);
     const containerWidth = container.clientWidth;
     const cols = columnCount;
 
@@ -157,7 +77,6 @@ export function SongDisplayPaged({
     measure.style.width = `${columnWidth}px`;
     measure.style.fontSize = `${fontSize}px`;
 
-    // Let React paint measurement children, then measure heights
     const raf = requestAnimationFrame(() => {
       const nodes = measure.querySelectorAll<HTMLElement>("[data-line-idx]");
       if (!nodes.length) {
@@ -232,7 +151,7 @@ export function SongDisplayPaged({
       <div className="song-page">
         {columns.map((columnLines, colIdx) => (
           <div key={colIdx} className="song-column">
-            {columnLines.map((line, idx) => renderLine(line, idx, transposition))}
+            {columnLines.map((line, idx) => renderSongLine(line, idx, transposition))}
           </div>
         ))}
       </div>
@@ -252,7 +171,7 @@ export function SongDisplayPaged({
       >
         {lines.map((line, idx) => (
           <div key={idx} data-line-idx={idx}>
-            {renderLine(line, idx, transposition)}
+            {renderSongLine(line, idx, transposition)}
           </div>
         ))}
       </div>
