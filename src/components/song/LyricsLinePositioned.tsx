@@ -13,10 +13,19 @@ function normalizeChordTokens(chordLabel: string): string[] {
   if (!raw) return [];
 
   // If Tab4U returned concatenated chords (e.g., "E7Am" or "AmDm"),
-  // split before root letters A-G, but never split slash-chords bass ("C/G").
-  const spaced = raw.replace(/(?<!^)(?<!\/)(?=[A-G])/g, " ");
+  // split before any root letter A-G that starts a new chord.
+  // Handle cases like "E7Am", "AmDm", "Dm7G7" etc.
+  // Match: letter A-G optionally followed by # or b, then modifiers (m, 7, maj, dim, sus, add, etc.)
+  // Don't split slash-chords like "C/G"
+  const chordPattern = /([A-G][#b]?(?:m(?:aj)?|M|dim|aug|sus[24]?|add\d+|[0-9]+)?(?:\/[A-G][#b]?)?)/g;
+  const matches = raw.match(chordPattern);
+  
+  if (matches && matches.length > 1) {
+    return matches.map((t) => t.trim()).filter(Boolean);
+  }
 
-  return spaced
+  // Fallback: split on spaces
+  return raw
     .split(/\s+/)
     .map((t) => t.trim())
     .filter(Boolean);

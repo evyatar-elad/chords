@@ -95,7 +95,8 @@ export function SongDisplayPaged({
     const cs = window.getComputedStyle(container);
     const padTop = parseFloat(cs.paddingTop) || 0;
     const padBottom = parseFloat(cs.paddingBottom) || 0;
-    const safetyPx = 24;
+    // Extra safety margin to ensure content stays well within viewport
+    const safetyPx = 48;
     const containerHeight = Math.max(0, container.clientHeight - padTop - padBottom - safetyPx);
     const containerWidth = container.clientWidth;
     const cols = columnCount;
