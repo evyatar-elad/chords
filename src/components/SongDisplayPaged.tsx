@@ -20,12 +20,24 @@ function getColumnCount(width: number) {
 // Convert API SongLine to component SongLineData
 function toSongLineData(line: SongLine): SongLineData {
   switch (line.type) {
-    case "lyrics":
+    case "lyrics": {
+      // Tab4U content often contains leading/trailing newlines/tabs/spaces.
+      // Trim ONLY the edges (keep inner spaces) and shift chord positions accordingly.
+      const raw = line.lyrics ?? "";
+      const leading = raw.match(/^\s*/)?.[0].length ?? 0;
+      const trailing = raw.match(/\s*$/)?.[0].length ?? 0;
+      const cleanedLyrics = raw.slice(leading, Math.max(leading, raw.length - trailing));
+
       return {
         type: "lyrics",
-        lyrics: line.lyrics,
-        chords: line.chords.map(c => ({ chord: c.chord, at: c.at })),
+        lyrics: cleanedLyrics,
+        chords: line.chords.map((c) => ({
+          chord: c.chord,
+          at: Math.max(0, c.at - leading),
+        })),
       };
+    }
+
     case "chords-only":
       return {
         type: "chords-only",

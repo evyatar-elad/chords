@@ -37,7 +37,16 @@ export function LyricsLinePositioned({
 
     for (let i = 0; i < sorted.length; i++) {
       const { chord, at } = sorted[i];
-      const clampedAt = Math.min(Math.max(0, at), lyrics.length);
+
+      // Clamp and then snap chord start to the nearest word boundary (space).
+      // This prevents cases where a chord "splits" a word and leaves a single Hebrew letter
+      // on the next line ("אותיות נופלות").
+      let clampedAt = Math.min(Math.max(0, at), lyrics.length);
+      const prevSpace = lyrics.lastIndexOf(" ", clampedAt - 1);
+      const wordStart = prevSpace >= 0 ? prevSpace + 1 : 0;
+      if (wordStart >= lastEnd && wordStart < clampedAt) {
+        clampedAt = wordStart;
+      }
 
       // Any text before this chord position (no chord above it)
       if (clampedAt > lastEnd) {
@@ -72,7 +81,10 @@ export function LyricsLinePositioned({
   return (
     <div className="lyrics-row">
       {segments.map((seg, idx) => (
-        <span key={idx} className="segment">
+        <span
+          key={idx}
+          className={seg.chord ? "segment segment--chord" : "segment"}
+        >
           <span className="segment-chord">{seg.chord || "\u00A0"}</span>
           <span className="segment-text">{seg.text}</span>
         </span>
