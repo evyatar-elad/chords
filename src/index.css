@@ -140,10 +140,12 @@
     unicode-bidi: isolate;
   }
 
-  /* Wrap only BETWEEN segments (not inside), to avoid single letters dropping */
+  /* Wrap only BETWEEN words (collapse extra spaces), avoids random gaps */
   .segment-text {
     display: inline;
-    white-space: pre;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: normal;
     direction: rtl;
     unicode-bidi: plaintext;
   }
