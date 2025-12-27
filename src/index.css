@@ -39,6 +39,10 @@
     @apply border-border;
   }
 
+  html, body {
+    height: 100%;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
@@ -144,6 +148,15 @@
     min-height: 1.3em;
     direction: ltr;
     unicode-bidi: isolate;
+    display: inline-flex;
+    gap: 0.6em;
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+
+  .chord-token {
+    display: inline-block;
+    white-space: nowrap;
   }
 
   /* Preserve spaces inside text, allow wrap between segments */

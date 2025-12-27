@@ -85,11 +85,10 @@ function normalizeChordTokens(chordLabel: string): string[] {
   return tokens;
 }
 
-function transposeChordLabel(chordLabel: string, semitones: number): string {
+function transposeChordLabel(chordLabel: string, semitones: number): string[] {
   const tokens = normalizeChordTokens(chordLabel);
-  if (tokens.length === 0) return "";
-  if (tokens.length === 1) return transposeChord(tokens[0], semitones);
-  return tokens.map((t) => transposeChord(t, semitones)).join(" ");
+  if (tokens.length === 0) return [];
+  return tokens.map((t) => transposeChord(t, semitones));
 }
 
 /**
@@ -115,7 +114,7 @@ export function LyricsLinePositioned({
 
     // Sort chords by 'at' (should already be sorted, but ensure)
     const sorted = [...chords].sort((a, b) => a.at - b.at);
-    const result: Array<{ text: string; chord: string | null }> = [];
+    const result: Array<{ text: string; chordTokens: string[] | null }> = [];
 
     let lastEnd = 0;
 
@@ -134,7 +133,7 @@ export function LyricsLinePositioned({
 
       // Any text before this chord position (no chord above it)
       if (clampedAt > lastEnd) {
-        result.push({ text: lyrics.slice(lastEnd, clampedAt), chord: null });
+        result.push({ text: lyrics.slice(lastEnd, clampedAt), chordTokens: null });
       }
 
       // This chord's segment extends to the next chord (or end of line)
@@ -149,9 +148,11 @@ export function LyricsLinePositioned({
         segmentText = segmentText.trimEnd();
       }
 
+      const chordTokens = transposeChordLabel(chord, semitones);
+
       result.push({
         text: segmentText || "\u00A0",
-        chord: transposeChordLabel(chord, semitones) || "\u00A0",
+        chordTokens: chordTokens.length ? chordTokens : ["\u00A0"],
       });
 
       lastEnd = clampedNext;
@@ -159,7 +160,7 @@ export function LyricsLinePositioned({
 
     // Remaining text after last chord - trim trailing spaces
     if (lastEnd < lyrics.length) {
-      result.push({ text: lyrics.slice(lastEnd).trimEnd(), chord: null });
+      result.push({ text: lyrics.slice(lastEnd).trimEnd(), chordTokens: null });
     }
 
     return result;
@@ -172,8 +173,14 @@ export function LyricsLinePositioned({
   return (
     <div className="lyrics-row">
       {segments.map((seg, idx) => (
-        <span key={idx} className={seg.chord ? "segment segment--chord" : "segment"}>
-          <span className="segment-chord">{seg.chord || "\u00A0"}</span>
+        <span key={idx} className={seg.chordTokens ? "segment segment--chord" : "segment"}>
+          <span className="segment-chord">
+            {seg.chordTokens?.map((t, tIdx) => (
+              <span key={tIdx} className="chord-token">
+                {t}
+              </span>
+            )) || "\u00A0"}
+          </span>
           <span className="segment-text">{seg.text}</span>
         </span>
       ))}
