@@ -34,12 +34,12 @@ interface LyricsLineProps {
 }
 
 function LyricsLine({ units, transposition }: LyricsLineProps) {
-  // Tab4U parsing often returns visual order left->right; in RTL display we want right->left.
-  const rtlUnits = [...units].reverse();
-
+  // Units come from scraper in LTR order (by position in text).
+  // We render them in the same order; CSS direction:rtl handles RTL display.
+  // NO reversal - this was causing text corruption.
   return (
     <div className="lyrics-line">
-      {rtlUnits.map((unit, idx) => (
+      {units.map((unit, idx) => (
         <ChordUnitDisplay key={idx} unit={unit} transposition={transposition} />
       ))}
     </div>

@@ -91,11 +91,11 @@
     height: 100%;
   }
 
-  /* Paged columns layout */
+  /* Paged columns layout - columns rendered in code order, managed via JS */
   .song-page {
     display: flex;
-    flex-direction: row-reverse;
-    gap: 0.4rem;
+    flex-direction: row;
+    gap: 0;
     height: 100%;
     align-items: stretch;
   }
@@ -104,10 +104,21 @@
     flex: 1;
     overflow: hidden;
     min-width: 0;
+    padding: 0 0.75rem;
   }
 
-  /* Borders between columns: with row-reverse, last-child is visually leftmost */
-  .song-column:not(:last-child) {
+  /* First column (visually rightmost when columns are reversed in code) has no left border */
+  .song-column:first-child {
+    padding-right: 0;
+  }
+
+  /* Last column (visually leftmost) has no left border */
+  .song-column:last-child {
+    padding-left: 0;
+  }
+
+  /* Middle columns get left border */
+  .song-column:not(:first-child) {
     border-left: 1px solid hsl(var(--border));
   }
 
@@ -115,26 +126,28 @@
     break-inside: avoid;
   }
 
-  /* Lyrics line: RTL (words progress right->left), allow wrapping */
+  /* Lyrics line: LTR display order (units are in LTR from scraper), but text is RTL */
   .lyrics-line {
     display: block;
-    direction: rtl;
+    direction: ltr;
     text-align: right;
     margin-bottom: 0.5em;
-    white-space: normal;
+    white-space: nowrap;
   }
 
-  /* Each chord+text unit (two-row grid: chord above, lyric below) */
+  /* Each chord+text unit - relative positioning for chord above */
   .chord-unit {
-    display: inline-grid;
-    grid-template-rows: auto auto;
-    align-items: end;
-    line-height: 1.1;
+    display: inline-block;
+    position: relative;
+    vertical-align: bottom;
+    padding-top: 1.4em;
+    line-height: 1.2;
   }
 
   .chord-above {
-    grid-row: 1;
-    justify-self: end;
+    position: absolute;
+    top: 0;
+    left: 0;
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
@@ -147,13 +160,12 @@
   }
 
   .chord-text {
-    grid-row: 2;
     display: inline;
     direction: rtl;
+    unicode-bidi: isolate;
   }
 
-
-  /* Chords-only lines (no lyrics): LTR aligned to the left, allow wrapping */
+  /* Chords-only lines (no lyrics): LTR aligned */
   .chords-only-line {
     display: flex;
     flex-wrap: wrap;
@@ -184,6 +196,7 @@
     margin-top: 1.5em;
     margin-bottom: 0.5em;
     padding-top: 0;
+    direction: rtl;
   }
 
   /* Empty line */
