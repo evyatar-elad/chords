@@ -56,7 +56,10 @@ export function LyricsLinePositioned({
       // This chord's segment extends to the next chord (or end of line)
       const nextAt = sorted[i + 1]?.at ?? lyrics.length;
       const clampedNext = Math.min(Math.max(clampedAt, nextAt), lyrics.length);
-      const segmentText = lyrics.slice(clampedAt, clampedNext);
+      let segmentText = lyrics.slice(clampedAt, clampedNext);
+      
+      // Trim trailing spaces from segment to avoid visual gaps at segment boundaries
+      segmentText = segmentText.trimEnd();
 
       result.push({
         text: segmentText || "\u00A0",
