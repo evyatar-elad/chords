@@ -8,6 +8,27 @@ interface LyricsLinePositionedProps {
   transposition: number;
 }
 
+function normalizeChordTokens(chordLabel: string): string[] {
+  const raw = (chordLabel ?? "").trim();
+  if (!raw) return [];
+
+  // If Tab4U returned concatenated chords (e.g., "E7Am" or "AmDm"),
+  // split before root letters A-G, but never split slash-chords bass ("C/G").
+  const spaced = raw.replace(/(?<!^)(?<!\/)(?=[A-G])/g, " ");
+
+  return spaced
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
+function transposeChordLabel(chordLabel: string, semitones: number): string {
+  const tokens = normalizeChordTokens(chordLabel);
+  if (tokens.length === 0) return "";
+  if (tokens.length === 1) return transposeChord(tokens[0], semitones);
+  return tokens.map((t) => transposeChord(t, semitones)).join(" ");
+}
+
 /**
  * Simple segment-based approach:
  * - Split lyrics into segments by chord positions
@@ -24,7 +45,7 @@ export function LyricsLinePositioned({
 
   const segments = useMemo(() => {
     if (!lyrics) return [];
-    
+
     if (chords.length === 0) {
       return [{ text: lyrics, chord: null as string | null }];
     }
@@ -57,7 +78,7 @@ export function LyricsLinePositioned({
       const nextAt = sorted[i + 1]?.at ?? lyrics.length;
       const clampedNext = Math.min(Math.max(clampedAt, nextAt), lyrics.length);
       let segmentText = lyrics.slice(clampedAt, clampedNext);
-      
+
       // Only trim trailing spaces if this is the LAST segment (end of line)
       // Keep spaces between segments to maintain word/chord separation
       const isLastChordSegment = i === sorted.length - 1 && clampedNext >= lyrics.length;
@@ -67,7 +88,7 @@ export function LyricsLinePositioned({
 
       result.push({
         text: segmentText || "\u00A0",
-        chord: transposeChord(chord, semitones),
+        chord: transposeChordLabel(chord, semitones) || "\u00A0",
       });
 
       lastEnd = clampedNext;
@@ -88,10 +109,7 @@ export function LyricsLinePositioned({
   return (
     <div className="lyrics-row">
       {segments.map((seg, idx) => (
-        <span
-          key={idx}
-          className={seg.chord ? "segment segment--chord" : "segment"}
-        >
+        <span key={idx} className={seg.chord ? "segment segment--chord" : "segment"}>
           <span className="segment-chord">{seg.chord || "\u00A0"}</span>
           <span className="segment-text">{seg.text}</span>
         </span>
