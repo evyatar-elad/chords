@@ -108,12 +108,11 @@ export function SongDisplayPaged({
     const padTop = parseFloat(cs.paddingTop) || 0;
     const padBottom = parseFloat(cs.paddingBottom) || 0;
     
-    // Dynamic safety margin: ~2 lines worth of space
+    // Dynamic safety margin: ~3 lines worth of space (hard stop before the bottom)
     // lineHeight is 1.8, so one line ≈ fontSize * 1.8
-    // We want 2+ lines of safety
     const lineHeightPx = fontSize * 1.8;
-    const safetyPx = Math.max(60, lineHeightPx * 2.5);
-    
+    const safetyPx = Math.max(120, lineHeightPx * 3.25);
+
     const containerHeight = Math.max(0, container.clientHeight - padTop - padBottom - safetyPx);
     const containerWidth = container.clientWidth;
     const cols = columnCount;
