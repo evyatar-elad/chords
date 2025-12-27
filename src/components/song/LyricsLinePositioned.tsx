@@ -58,8 +58,12 @@ export function LyricsLinePositioned({
       const clampedNext = Math.min(Math.max(clampedAt, nextAt), lyrics.length);
       let segmentText = lyrics.slice(clampedAt, clampedNext);
       
-      // Trim trailing spaces from segment to avoid visual gaps at segment boundaries
-      segmentText = segmentText.trimEnd();
+      // Only trim trailing spaces if this is the LAST segment (end of line)
+      // Keep spaces between segments to maintain word/chord separation
+      const isLastChordSegment = i === sorted.length - 1 && clampedNext >= lyrics.length;
+      if (isLastChordSegment) {
+        segmentText = segmentText.trimEnd();
+      }
 
       result.push({
         text: segmentText || "\u00A0",
@@ -69,9 +73,9 @@ export function LyricsLinePositioned({
       lastEnd = clampedNext;
     }
 
-    // Remaining text after last chord
+    // Remaining text after last chord - trim trailing spaces
     if (lastEnd < lyrics.length) {
-      result.push({ text: lyrics.slice(lastEnd), chord: null });
+      result.push({ text: lyrics.slice(lastEnd).trimEnd(), chord: null });
     }
 
     return result;
