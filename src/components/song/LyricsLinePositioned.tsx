@@ -119,43 +119,52 @@ export function LyricsLinePositioned({
     let lastEnd = 0;
 
     for (let i = 0; i < sorted.length; i++) {
-      const { chord, at } = sorted[i];
+      // Compute a stable start position for THIS chord (snapped to word boundary)
+      const computeSnappedAt = (at: number) => {
+        let clampedAt = Math.min(Math.max(0, at), lyrics.length);
+        const prevSpace = lyrics.lastIndexOf(" ", clampedAt - 1);
+        const wordStart = prevSpace >= 0 ? prevSpace + 1 : 0;
+        if (wordStart >= lastEnd && wordStart < clampedAt) {
+          clampedAt = wordStart;
+        }
+        return clampedAt;
+      };
 
-      // Clamp and then snap chord start to the nearest word boundary (space).
-      // This prevents cases where a chord "splits" a word and leaves a single Hebrew letter
-      // on the next line ("אותיות נופלות").
-      let clampedAt = Math.min(Math.max(0, at), lyrics.length);
-      const prevSpace = lyrics.lastIndexOf(" ", clampedAt - 1);
-      const wordStart = prevSpace >= 0 ? prevSpace + 1 : 0;
-      if (wordStart >= lastEnd && wordStart < clampedAt) {
-        clampedAt = wordStart;
-      }
+      const startAt = computeSnappedAt(sorted[i].at);
 
       // Any text before this chord position (no chord above it)
-      if (clampedAt > lastEnd) {
-        result.push({ text: lyrics.slice(lastEnd, clampedAt), chordTokens: null });
+      if (startAt > lastEnd) {
+        result.push({ text: lyrics.slice(lastEnd, startAt), chordTokens: null });
       }
 
-      // This chord's segment extends to the next chord (or end of line)
-      const nextAt = sorted[i + 1]?.at ?? lyrics.length;
-      const clampedNext = Math.min(Math.max(clampedAt, nextAt), lyrics.length);
-      let segmentText = lyrics.slice(clampedAt, clampedNext);
+      // Merge chords that land on the SAME startAt (Tab4U sometimes emits back-to-back chords with identical positions)
+      const mergedChordTokens: string[] = [];
+      let j = i;
+      while (j < sorted.length && computeSnappedAt(sorted[j].at) === startAt) {
+        const tokens = transposeChordLabel(sorted[j].chord, semitones);
+        if (tokens.length) mergedChordTokens.push(...tokens);
+        j++;
+      }
+
+      // This chord segment extends to the next chord (or end of line)
+      const nextAt = sorted[j]?.at ?? lyrics.length;
+      const clampedNext = Math.min(Math.max(startAt, nextAt), lyrics.length);
+      let segmentText = lyrics.slice(startAt, clampedNext);
 
       // Only trim trailing spaces if this is the LAST segment (end of line)
       // Keep spaces between segments to maintain word/chord separation
-      const isLastChordSegment = i === sorted.length - 1 && clampedNext >= lyrics.length;
+      const isLastChordSegment = j >= sorted.length && clampedNext >= lyrics.length;
       if (isLastChordSegment) {
         segmentText = segmentText.trimEnd();
       }
 
-      const chordTokens = transposeChordLabel(chord, semitones);
-
       result.push({
         text: segmentText || "\u00A0",
-        chordTokens: chordTokens.length ? chordTokens : ["\u00A0"],
+        chordTokens: mergedChordTokens.length ? mergedChordTokens : ["\u00A0"],
       });
 
       lastEnd = clampedNext;
+      i = j - 1;
     }
 
     // Remaining text after last chord - trim trailing spaces
