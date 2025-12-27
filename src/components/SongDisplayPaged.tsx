@@ -75,6 +75,79 @@ export function SongDisplayPaged({
     return `${lines.length}|${transposition}|${fontSize}|${measureKey}`;
   }, [lines.length, transposition, fontSize, measureKey]);
 
+
+  // Detect "merged chord" situations (multiple chords landing on the same snapped position in a lyrics line)
+  const mergedChordInfoByLineIdx = useMemo(() => {
+    const map = new Map<number, { groups: Array<{ startAt: number; labels: string[] }> }>();
+
+    const computeForLine = (line: SongLine, originalIdx: number) => {
+      if (line.type !== "lyrics") return;
+
+      const raw = line.lyrics ?? "";
+      const leading = raw.match(/^\s*/)?.[0].length ?? 0;
+      const trailing = raw.match(/\s*$/)?.[0].length ?? 0;
+      const lyrics = raw.slice(leading, Math.max(leading, raw.length - trailing));
+
+      const chords = (line.chords ?? [])
+        .map((c) => ({ chord: c.chord, at: Math.max(0, c.at - leading) }))
+        .sort((a, b) => a.at - b.at);
+
+      if (!lyrics || chords.length < 2) return;
+
+      const groups: Array<{ startAt: number; labels: string[] }> = [];
+      let lastEnd = 0;
+
+      const computeSnappedAt = (at: number) => {
+        let clampedAt = Math.min(Math.max(0, at), lyrics.length);
+        const prevSpace = lyrics.lastIndexOf(" ", clampedAt - 1);
+        const wordStart = prevSpace >= 0 ? prevSpace + 1 : 0;
+        if (wordStart >= lastEnd && wordStart < clampedAt) {
+          clampedAt = wordStart;
+        }
+        return clampedAt;
+      };
+
+      for (let i = 0; i < chords.length; i++) {
+        const startAt = computeSnappedAt(chords[i].at);
+        const labels: string[] = [chords[i].chord];
+
+        let j = i + 1;
+        while (j < chords.length && computeSnappedAt(chords[j].at) === startAt) {
+          labels.push(chords[j].chord);
+          j++;
+        }
+
+        if (labels.length > 1) {
+          groups.push({ startAt, labels });
+        }
+
+        const nextAt = chords[j]?.at ?? lyrics.length;
+        lastEnd = Math.min(Math.max(startAt, nextAt), lyrics.length);
+        i = j - 1;
+      }
+
+      if (groups.length) {
+        map.set(originalIdx, { groups });
+      }
+    };
+
+    lines.forEach((l, idx) => computeForLine(l, idx));
+    return map;
+  }, [lines]);
+
+  const mergedChordPreview = useMemo(() => {
+    const preview: string[] = [];
+    const entries = Array.from(mergedChordInfoByLineIdx.entries()).slice(0, 8);
+    for (const [idx, info] of entries) {
+      const first = info.groups[0];
+      preview.push(`#${idx}: ${first.labels.join(" + ")}`);
+    }
+    if (mergedChordInfoByLineIdx.size > entries.length) {
+      preview.push(`… +${mergedChordInfoByLineIdx.size - entries.length} more`);
+    }
+    return preview;
+  }, [mergedChordInfoByLineIdx]);
+
   // Track container size changes (both width AND height)
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -196,6 +269,8 @@ export function SongDisplayPaged({
              measureWidth,
              fontSize,
              pages: Math.max(1, padded.length),
+             mergedChordLinesCount: mergedChordInfoByLineIdx.size,
+             mergedChordLinesPreview: mergedChordPreview,
            });
          } else {
            setDebugInfo(null);
@@ -206,11 +281,21 @@ export function SongDisplayPaged({
     });
 
     return () => cancelAnimationFrame(raf1);
-  }, [inputSignature, lines, fontSize, transposition, columnCount, debug]);
+  }, [
+    inputSignature,
+    lines,
+    fontSize,
+    transposition,
+    columnCount,
+    debug,
+    mergedChordInfoByLineIdx,
+    mergedChordPreview,
+  ]);
 
   useEffect(() => {
     onTotalPagesChange?.(Math.max(1, pages.length));
   }, [pages.length, onTotalPagesChange]);
+
 
   // Get current page columns - DO NOT reverse, let CSS direction:rtl handle visual order
   const currentPageCols = pages[currentPage] || [];
@@ -241,14 +326,31 @@ export function SongDisplayPaged({
           <div key={colIdx} className="song-col">
             {columnLines.map((line, lineIdx) => {
               const originalIdx = lineIndexByRef.get(line as unknown as object);
+              const hasMerged =
+                debug && typeof originalIdx === "number" && mergedChordInfoByLineIdx.has(originalIdx);
+
               return (
                 <div
                   key={`${currentPage}-${colIdx}-${lineIdx}`}
-                  className={debug ? "relative rounded-sm bg-accent/5 ring-1 ring-accent/25" : undefined}
+                  className={
+                    debug
+                      ? [
+                          "relative rounded-sm ring-1",
+                          hasMerged
+                            ? "bg-destructive/5 ring-destructive/35"
+                            : "bg-accent/5 ring-accent/25",
+                        ].join(" ")
+                      : undefined
+                  }
                 >
                   {debug && typeof originalIdx === "number" ? (
-                    <div className="absolute -top-2 left-1 select-none rounded border border-border bg-background/80 px-1 text-[10px] font-mono text-muted-foreground">
-                      #{originalIdx}
+                    <div className="absolute -top-2 left-1 flex items-center gap-1 select-none rounded border border-border bg-background/80 px-1 text-[10px] font-mono text-muted-foreground">
+                      <span>#{originalIdx}</span>
+                      {hasMerged ? (
+                        <span className="rounded bg-destructive/10 px-1 text-[10px] text-destructive">
+                          merged
+                        </span>
+                      ) : null}
                     </div>
                   ) : null}
 
