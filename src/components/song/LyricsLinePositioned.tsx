@@ -12,92 +12,74 @@ interface LyricsLinePositionedProps {
  * Scan-forward tokenizer: extracts chords one-by-one from a potentially concatenated string.
  * Handles cases like "E7Am", "AmDm", "Dm7G7", "Cadd9Em7", slash chords "C/G", etc.
  */
+/**
+ * Simple and reliable chord tokenizer:
+ * - Any uppercase A-G starts a NEW chord
+ * - Exception: A-G after '/' is a bass note (part of current chord)
+ * - Consume everything else (modifiers, numbers) until next A-G root
+ */
 function normalizeChordTokens(chordLabel: string): string[] {
   const raw = (chordLabel ?? "").trim();
   if (!raw) return [];
 
   const tokens: string[] = [];
+  let current = "";
   let i = 0;
 
   while (i < raw.length) {
-    // Skip non-chord characters (spaces, parentheses, commas, bidi marks)
-    if (/[\s(),\u200E\u200F\u202A-\u202E\u2066-\u2069]/.test(raw[i])) {
+    const ch = raw[i];
+
+    // Skip whitespace and separators
+    if (/[\s(),\u200E\u200F\u202A-\u202E\u2066-\u2069]/.test(ch)) {
+      if (current) {
+        tokens.push(current);
+        current = "";
+      }
       i++;
       continue;
     }
 
-    // Check for chord root: A-G
-    if (/[A-G]/.test(raw[i])) {
-      let chord = raw[i];
+    // Check if this is a chord root (A-G uppercase)
+    if (/[A-G]/.test(ch)) {
+      // If we already have a chord building, save it first
+      // Exception: if previous char was '/', this is a bass note
+      const prevChar = i > 0 ? raw[i - 1] : "";
+      if (current && prevChar !== "/") {
+        tokens.push(current);
+        current = "";
+      }
+      current += ch;
       i++;
 
-      // Optional sharp or flat
+      // Optional sharp or flat immediately after root
       if (i < raw.length && /[#b♯♭]/.test(raw[i])) {
-        chord += raw[i];
+        current += raw[i];
         i++;
       }
-
-      // Consume modifiers: m, M, maj, min, dim, aug, sus, add, numbers, etc.
-      // Continue until we hit another root letter (A-G) or end
-      while (i < raw.length) {
-        const ch = raw[i];
-        
-        // If we hit a slash, check if it's a bass note (slash chord)
-        if (ch === '/') {
-          // Look ahead for bass note
-          if (i + 1 < raw.length && /[A-G]/.test(raw[i + 1])) {
-            chord += ch;
-            i++;
-            chord += raw[i]; // bass root
-            i++;
-            // Optional sharp/flat on bass
-            if (i < raw.length && /[#b♯♭]/.test(raw[i])) {
-              chord += raw[i];
-              i++;
-            }
-          } else {
-            break;
-          }
-          continue;
-        }
-
-        // If we hit another root letter, stop (new chord starts)
-        if (/[A-G]/.test(ch) && !/[0-9]/.test(raw[i - 1] || '')) {
-          // But check if it's part of "add9", "sus4", "maj7" etc.
-          // Letters m, a, d, s, u, i, g are valid modifier chars
-          const lowerCh = ch.toLowerCase();
-          if (!['a', 'd', 's', 'u', 'i', 'g', 'm'].includes(lowerCh)) {
-            break; // It's a new chord root
-          }
-          // Check context: is this likely a modifier or a new chord?
-          // If preceded by a letter that makes sense (like 'm' for 'maj'), continue
-          // Otherwise if it's A-G uppercase and previous was a number, it's a new chord
-          if (ch === ch.toUpperCase() && /[0-9]/.test(raw[i - 1] || '')) {
-            break;
-          }
-        }
-
-        // Valid modifier characters: letters, numbers
-        if (/[a-zA-Z0-9]/.test(ch)) {
-          chord += ch;
-          i++;
-        } else {
-          break;
-        }
-      }
-
-      if (chord) {
-        tokens.push(chord);
-      }
-    } else {
-      // Skip unknown character
-      i++;
+      continue;
     }
+
+    // Slash - could be slash chord bass note coming
+    if (ch === "/") {
+      current += ch;
+      i++;
+      continue;
+    }
+
+    // Any other character (modifiers, numbers) - add to current chord
+    if (/[a-z0-9]/i.test(ch)) {
+      current += ch;
+      i++;
+      continue;
+    }
+
+    // Unknown character - skip
+    i++;
   }
 
-  // If tokenizer found nothing, fall back to space-split
-  if (tokens.length === 0 && raw.length > 0) {
-    return raw.split(/\s+/).map(t => t.trim()).filter(Boolean);
+  // Don't forget the last chord
+  if (current) {
+    tokens.push(current);
   }
 
   return tokens;
