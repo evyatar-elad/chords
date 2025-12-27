@@ -14,14 +14,11 @@ function ChordUnitDisplay({ unit, transposition }: ChordUnitDisplayProps) {
   // Keep a printable placeholder so the unit has width even when empty
   const text = unit.text || "\u00A0";
 
-  if (!transposedChord) {
-    return <span className="chord-text">{text}</span>;
-  }
-
+  // Always use the same wrapper so line height & measurement stay consistent
   return (
     <span className="chord-unit">
-      <span className="chord-above" dir="ltr">
-        {transposedChord}
+      <span className="chord-above" dir="ltr" aria-hidden={!transposedChord}>
+        {transposedChord ?? "\u00A0"}
       </span>
       <span className="chord-text">{text}</span>
     </span>
