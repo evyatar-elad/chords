@@ -285,10 +285,15 @@ function parseTableRows(tableHtml: string): SongLine[] {
         i += 2;
       } else {
         // Chords only line (intro/transition)
+        // Sort by position DESCENDING so the chord that was on the right (higher position)
+        // comes first in the array. Combined with RTL display, this gives correct order.
         if (chordPositions.length > 0) {
+          const sortedChords = [...chordPositions]
+            .sort((a, b) => b.position - a.position)
+            .map(cp => cp.chord);
           result.push({ 
             type: 'chords-only', 
-            chords: chordPositions.map(cp => cp.chord) 
+            chords: sortedChords 
           });
         }
         i++;
