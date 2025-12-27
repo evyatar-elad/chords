@@ -64,7 +64,7 @@
 }
 
 @layer utilities {
-  /* ===== SONG DISPLAY - SIMPLE RTL ===== */
+  /* ===== SONG DISPLAY ===== */
   
   .song-container {
     font-family: var(--font-hebrew);
@@ -74,7 +74,7 @@
     height: 100%;
   }
 
-  /* Columns container - direction:rtl makes first column appear on RIGHT */
+  /* Columns container - RTL flex: first child on RIGHT */
   .song-columns {
     display: flex;
     flex-direction: row;
@@ -85,53 +85,56 @@
     flex: 1;
     min-width: 0;
     padding: 0 0.75rem;
-    border-left: 1px solid hsl(var(--border));
   }
 
-  /* First column (rightmost in RTL) - no left border */
+  /* First column (rightmost in RTL) - no padding on right edge */
   .song-col:first-child {
-    border-left: none;
     padding-right: 0;
   }
 
-  /* Last column (leftmost in RTL) */
+  /* Last column (leftmost in RTL) - no padding on left edge */
   .song-col:last-child {
     padding-left: 0;
   }
 
-  /* Lyrics line with measured chord positions */
-  .lyrics-line-measured {
-    position: relative;
+  /* Column separators: border-right on all except first-child (rightmost) */
+  .song-col:not(:first-child) {
+    border-right: 1px solid hsl(var(--border));
+  }
+
+  /* ===== LYRICS LINE WITH GRID SEGMENTS ===== */
+  
+  .lyrics-line-grid {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     direction: rtl;
     text-align: right;
     margin-bottom: 0.5em;
-    padding-top: 1.4em; /* Space for chords above */
   }
 
-  .chords-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1.4em;
-    pointer-events: none;
+  .lyric-segment {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end; /* Align to the right (end in RTL) */
   }
 
-  .measured-chord {
-    position: absolute;
-    top: 0;
+  .seg-chord {
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
     font-family: var(--font-mono);
     font-size: 0.85em;
-    white-space: nowrap;
+    line-height: 1.2;
     direction: ltr;
+    unicode-bidi: isolate;
+    min-height: 1.2em;
   }
 
-  .lyrics-text-plain {
+  .seg-text {
     direction: rtl;
     unicode-bidi: plaintext;
+    white-space: pre; /* Preserve spaces */
   }
 
   /* Chords-only line */
