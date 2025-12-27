@@ -130,19 +130,43 @@ function parseSongFromHtml(html: string, url: string): SongData {
   let title = 'שיר ללא שם';
   let artist = 'אמן לא ידוע';
 
-  // Extract title and artist from h1: "אקורדים לשיר SONG_NAME של ARTIST_NAME"
+  // Try multiple patterns to extract title and artist
+  // Pattern 1: Standard format with font/a tags
   const h1Match = html.match(/<h1[^>]*>.*?אקורדים לשיר\s+([^<]+?)\s+של\s+(?:<a[^>]*>)?([^<]+?)(?:<\/a>)?<\/font><\/h1>/is);
   if (h1Match) {
     title = h1Match[1].trim();
     artist = h1Match[2].trim();
     console.log('Extracted from h1:', { title, artist });
   } else {
-    // Fallback: try alternative h1 pattern
+    // Pattern 2: With <a> tag for artist
     const altH1Match = html.match(/<h1[^>]*>[^<]*אקורדים לשיר\s+(.+?)\s+של\s+<a[^>]*>([^<]+)<\/a>/is);
     if (altH1Match) {
       title = altH1Match[1].trim();
       artist = altH1Match[2].trim();
       console.log('Extracted from alt h1:', { title, artist });
+    } else {
+      // Pattern 3: Try extracting from page title or any h1 with "אקורדים לשיר"
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      if (titleMatch) {
+        // Title format: "אקורדים לשיר SONG - ARTIST | tab4u"
+        const titleText = titleMatch[1];
+        const parsedTitle = titleText.match(/אקורדים לשיר\s+(.+?)\s+-\s+(.+?)\s*(?:\||$)/);
+        if (parsedTitle) {
+          title = parsedTitle[1].trim();
+          artist = parsedTitle[2].trim();
+          console.log('Extracted from title tag:', { title, artist });
+        }
+      }
+      
+      // Pattern 4: Try extracting from URL (fallback)
+      if (title === 'שיר ללא שם') {
+        const urlMatch = url.match(/songs\/\d+_([^_]+)_-_([^.]+)\.html/);
+        if (urlMatch) {
+          artist = decodeURIComponent(urlMatch[1]).replace(/_/g, ' ');
+          title = decodeURIComponent(urlMatch[2]).replace(/_/g, ' ');
+          console.log('Extracted from URL:', { title, artist });
+        }
+      }
     }
   }
 
