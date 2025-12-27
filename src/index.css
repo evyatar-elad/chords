@@ -117,7 +117,7 @@
     padding-left: 0;
   }
 
-  /* Middle columns get left border */
+  /* Middle/left columns get a separator */
   .song-column:not(:first-child) {
     border-left: 1px solid hsl(var(--border));
   }
@@ -126,13 +126,14 @@
     break-inside: avoid;
   }
 
-  /* Lyrics line: LTR display order (units are in LTR from scraper), but text is RTL */
+  /* Lyrics line: keep the whole line RTL (Hebrew-safe). Only chord text itself is LTR. */
   .lyrics-line {
     display: block;
-    direction: ltr;
+    direction: rtl;
+    unicode-bidi: plaintext;
     text-align: right;
     margin-bottom: 0.5em;
-    white-space: nowrap;
+    white-space: normal;
   }
 
   /* Each chord+text unit - relative positioning for chord above */
@@ -144,10 +145,12 @@
     line-height: 1.2;
   }
 
+  /* Place chord above the *start* of the RTL unit (right edge) */
   .chord-above {
     position: absolute;
     top: 0;
-    left: 0;
+    right: 0;
+    left: auto;
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
@@ -162,7 +165,7 @@
   .chord-text {
     display: inline;
     direction: rtl;
-    unicode-bidi: isolate;
+    unicode-bidi: plaintext;
   }
 
   /* Chords-only lines (no lyrics): LTR aligned */
