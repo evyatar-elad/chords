@@ -249,22 +249,22 @@ function parseSongContent(html: string): SongLine[] {
 
 function parseTableRows(tableHtml: string): SongLine[] {
   const result: SongLine[] = [];
-  
+
   // Find all rows in pairs (chords row followed by lyrics row)
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const rows: { type: 'chords' | 'lyrics' | 'section'; content: string }[] = [];
   let rowMatch;
-  
+
   while ((rowMatch = rowRegex.exec(tableHtml)) !== null) {
     const rowContent = rowMatch[1];
-    
+
     // Find the td
     const tdMatch = rowContent.match(/<td[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/td>/i);
     if (!tdMatch) continue;
-    
+
     const tdClass = tdMatch[1];
     const tdContent = tdMatch[2];
-    
+
     if (tdClass.includes('chords')) {
       rows.push({ type: 'chords', content: tdContent });
     } else if (tdClass.includes('song')) {
@@ -276,12 +276,14 @@ function parseTableRows(tableHtml: string): SongLine[] {
       }
     }
   }
-  
+
   // Process rows - pair chords with lyrics
   let i = 0;
+  let inlineChordLyricsRows = 0;
+
   while (i < rows.length) {
     const row = rows[i];
-    
+
     if (row.type === 'section') {
       // Section title
       const titleMatch = row.content.match(/<span[^>]*class="titLine"[^>]*>([^<]*)<\/span>/i);
@@ -289,18 +291,19 @@ function parseTableRows(tableHtml: string): SongLine[] {
         result.push({ type: 'section', text: titleMatch[1].trim() });
       }
       i++;
-    } else if (row.type === 'chords') {
+      continue;
+    }
+
+    if (row.type === 'chords') {
       // Parse chords with their positions
       const chordPositions = extractChordPositions(row.content);
-      
+
       // Check if next row is lyrics
       if (i + 1 < rows.length && rows[i + 1].type === 'lyrics') {
-        // Combine chords with lyrics - new format
         const lyricsText = extractLyricsText(rows[i + 1].content);
 
         // NOTE: Tab4U chord positions are effectively measured from the LEFT edge of the rendered line,
         // while Hebrew lyrics render RTL. Convert "position" to an RTL-friendly offset into the string.
-        // This fixes the apparent reversed chord order.
         const len = lyricsText.length;
         const chordsWithAt: ChordPosition[] = chordPositions
           .map((cp) => ({
@@ -308,11 +311,11 @@ function parseTableRows(tableHtml: string): SongLine[] {
             at: Math.min(len, Math.max(0, len - cp.position)),
           }))
           .sort((a, b) => a.at - b.at);
-        
-        result.push({ 
-          type: 'lyrics', 
-          lyrics: lyricsText, 
-          chords: chordsWithAt 
+
+        result.push({
+          type: 'lyrics',
+          lyrics: lyricsText,
+          chords: chordsWithAt,
         });
         i += 2;
       } else {
@@ -322,30 +325,68 @@ function parseTableRows(tableHtml: string): SongLine[] {
         if (chordPositions.length > 0) {
           const sortedChords = [...chordPositions]
             .sort((a, b) => b.position - a.position)
-            .map(cp => cp.chord);
-          result.push({ 
-            type: 'chords-only', 
-            chords: sortedChords 
+            .map((cp) => cp.chord);
+          result.push({
+            type: 'chords-only',
+            chords: sortedChords,
           });
         }
         i++;
       }
-    } else if (row.type === 'lyrics') {
+      continue;
+    }
+
+    if (row.type === 'lyrics') {
+      // Lyrics row may contain INLINE chords ("c_C" spans) inside the lyrics itself.
+      // In that case, treat it as a full lyrics+chords line extracted from the same row.
+      const hasInlineChords = /class="c_C"/i.test(row.content);
+
+      if (hasInlineChords) {
+        inlineChordLyricsRows++;
+
+        const extracted = extractChordPositions(row.content);
+        const lyricsText = extractLyricsTextWithoutChords(row.content);
+
+        const len = lyricsText.length;
+        const chordsWithAt: ChordPosition[] = extracted
+          .map((cp) => ({
+            chord: cp.chord,
+            at: Math.min(len, Math.max(0, len - cp.position)),
+          }))
+          .sort((a, b) => a.at - b.at);
+
+        if (lyricsText.trim() || chordsWithAt.length) {
+          result.push({
+            type: 'lyrics',
+            lyrics: lyricsText,
+            chords: chordsWithAt,
+          });
+        }
+
+        i++;
+        continue;
+      }
+
       // Lyrics without chords above
       const lyricsText = extractLyricsText(row.content);
       if (lyricsText.trim()) {
-        result.push({ 
-          type: 'lyrics', 
+        result.push({
+          type: 'lyrics',
           lyrics: lyricsText,
-          chords: []
+          chords: [],
         });
       }
       i++;
-    } else {
-      i++;
+      continue;
     }
+
+    i++;
   }
-  
+
+  if (inlineChordLyricsRows > 0) {
+    console.log('Found inline-chord lyrics rows:', inlineChordLyricsRows);
+  }
+
   return result;
 }
 
@@ -375,18 +416,27 @@ function extractChordPositions(html: string): ExtractedChordPosition[] {
 
 function extractLyricsText(html: string): string {
   let text = html;
-  
+
   // Replace &nbsp; with regular space
   text = text.replace(/&nbsp;/g, ' ');
-  
+
+  // IMPORTANT: remove inline chord spans from lyrics so chords never get "glued" into the lyrics text.
+  // (Some pages embed chords directly inside the lyrics row.)
+  text = text.replace(/<span[^>]*class="c_C"[^>]*>[\s\S]*?<\/span>/gi, '');
+
   // Remove HTML tags
   text = text.replace(/<[^>]+>/g, '');
-  
+
   // Decode remaining entities
   text = text.replace(/&amp;/g, '&');
   text = text.replace(/&lt;/g, '<');
   text = text.replace(/&gt;/g, '>');
   text = text.replace(/&quot;/g, '"');
-  
+
   return text;
+}
+
+function extractLyricsTextWithoutChords(html: string): string {
+  // Alias for clarity at call sites.
+  return extractLyricsText(html);
 }

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { SongLine } from "@/lib/api";
 import { SongLineRenderer } from "@/components/song/SongLineRenderer";
 import type { SongLineData } from "@/components/song/types";
+import { PaginationDebugOverlay, type PaginationDebugInfo } from "@/components/song/PaginationDebugOverlay";
 
 interface SongDisplayPagedProps {
   lines: SongLine[];
@@ -9,6 +10,7 @@ interface SongDisplayPagedProps {
   fontSize: number;
   currentPage?: number;
   onTotalPagesChange?: (total: number) => void;
+  debug?: boolean;
 }
 
 function getColumnCount(width: number) {
@@ -59,6 +61,7 @@ export function SongDisplayPaged({
   fontSize,
   currentPage = 0,
   onTotalPagesChange,
+  debug = false,
 }: SongDisplayPagedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -66,6 +69,7 @@ export function SongDisplayPaged({
   const [columnCount, setColumnCount] = useState(1);
   const [pages, setPages] = useState<SongLine[][][]>([]);
   const [measureKey, setMeasureKey] = useState(0);
+  const [debugInfo, setDebugInfo] = useState<PaginationDebugInfo | null>(null);
 
   const inputSignature = useMemo(() => {
     return `${lines.length}|${transposition}|${fontSize}|${measureKey}`;
@@ -119,11 +123,13 @@ export function SongDisplayPaged({
 
     if (!containerHeight || !containerWidth || cols === 0) return;
 
-    const colPadding = 12;
-    const totalPadding = colPadding * (cols - 1);
-    const columnWidth = Math.floor((containerWidth - totalPadding) / cols);
+    // Our columns use CSS padding (0 0.75rem). To make pagination deterministic,
+    // measure using the inner content width (what the text actually wraps within).
+    const colWidth = Math.floor(containerWidth / cols);
+    const colPadX = 12; // 0.75rem ≈ 12px
+    const measureWidth = Math.max(120, colWidth - (colPadX * 2 + 1)); // subtract padding + divider
 
-    measure.style.width = `${columnWidth}px`;
+    measure.style.width = `${measureWidth}px`;
     measure.style.fontSize = `${fontSize}px`;
 
     // Double RAF for stability after layout
@@ -171,20 +177,36 @@ export function SongDisplayPaged({
           newPages.push(pageCols);
         }
 
-        const padded = newPages.map((p) => {
-          const copy = [...p];
-          while (copy.length < cols) copy.push([]);
-          return copy;
-        });
+         const padded = newPages.map((p) => {
+           const copy = [...p];
+           while (copy.length < cols) copy.push([]);
+           return copy;
+         });
 
-        setPages(padded);
+         setPages(padded);
+         if (debug) {
+           setDebugInfo({
+             cols,
+             containerWidth,
+             containerHeight,
+             padTop,
+             padBottom,
+             safetyPx,
+             columnWidth: colWidth,
+             measureWidth,
+             fontSize,
+             pages: Math.max(1, padded.length),
+           });
+         } else {
+           setDebugInfo(null);
+         }
       });
 
       return () => cancelAnimationFrame(raf2);
     });
 
     return () => cancelAnimationFrame(raf1);
-  }, [inputSignature, lines, fontSize, transposition, columnCount]);
+  }, [inputSignature, lines, fontSize, transposition, columnCount, debug]);
 
   useEffect(() => {
     onTotalPagesChange?.(Math.max(1, pages.length));
@@ -196,25 +218,44 @@ export function SongDisplayPaged({
     ? currentPageCols
     : Array.from({ length: columnCount }, () => [] as SongLine[]);
 
+  // Map line object references to their original index (debug labeling)
+  const lineIndexByRef = useMemo(() => {
+    const m = new WeakMap<object, number>();
+    lines.forEach((l, idx) => {
+      // SongLine is an object (from the backend). Use ref identity.
+      m.set(l as unknown as object, idx);
+    });
+    return m;
+  }, [lines]);
+
   return (
     <div
       ref={containerRef}
-      className="song-container"
+      className="song-container relative"
       style={{ fontSize: `${fontSize}px` }}
     >
+      {debug ? <PaginationDebugOverlay info={debugInfo} /> : null}
+
       <div className="song-columns">
         {visualColumns.map((columnLines, colIdx) => (
-          <div 
-            key={colIdx} 
-            className="song-col"
-          >
-            {columnLines.map((line, lineIdx) => (
-              <SongLineRenderer 
-                key={`${currentPage}-${colIdx}-${lineIdx}`}
-                line={toSongLineData(line)} 
-                transposition={transposition} 
-              />
-            ))}
+          <div key={colIdx} className="song-col">
+            {columnLines.map((line, lineIdx) => {
+              const originalIdx = lineIndexByRef.get(line as unknown as object);
+              return (
+                <div
+                  key={`${currentPage}-${colIdx}-${lineIdx}`}
+                  className={debug ? "relative rounded-sm bg-accent/5 ring-1 ring-accent/25" : undefined}
+                >
+                  {debug && typeof originalIdx === "number" ? (
+                    <div className="absolute -top-2 left-1 select-none rounded border border-border bg-background/80 px-1 text-[10px] font-mono text-muted-foreground">
+                      #{originalIdx}
+                    </div>
+                  ) : null}
+
+                  <SongLineRenderer line={toSongLineData(line)} transposition={transposition} />
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -230,6 +271,8 @@ export function SongDisplayPaged({
           top: 0,
           width: 0,
           overflow: "visible",
+          fontFamily: "var(--font-hebrew)",
+          lineHeight: "1.8",
         }}
         aria-hidden="true"
       >
