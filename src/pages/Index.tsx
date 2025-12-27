@@ -15,6 +15,11 @@ const Index = () => {
   const [fontSize, setFontSize] = useState(16);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [debugPagination, setDebugPagination] = useState(() => {
+    const fromQuery = new URLSearchParams(window.location.search).get("debug");
+    if (fromQuery === "1") return true;
+    return localStorage.getItem("debugPagination") === "1";
+  });
 
   const handleSubmit = async (url: string) => {
     setIsLoading(true);
@@ -52,13 +57,20 @@ const Index = () => {
     }
   }, [currentPage]);
 
-  // Handle keyboard navigation
+  // Handle keyboard navigation (+ debug toggle)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
         goToNextPage();
       } else if (e.key === "ArrowRight") {
         goToPrevPage();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === "d" || e.key === "D")) {
+        e.preventDefault();
+        setDebugPagination((v) => {
+          const next = !v;
+          localStorage.setItem("debugPagination", next ? "1" : "0");
+          return next;
+        });
       }
     };
 
@@ -185,6 +197,7 @@ const Index = () => {
                   fontSize={fontSize}
                   currentPage={currentPage}
                   onTotalPagesChange={setTotalPages}
+                  debug={debugPagination}
                 />
               </div>
             </div>
