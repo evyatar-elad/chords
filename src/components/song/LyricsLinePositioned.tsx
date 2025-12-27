@@ -62,6 +62,25 @@ export function LyricsLinePositioned({
       result.push({ text: lyrics.slice(lastEnd), chord: null });
     }
 
+    // Heuristic: prevent "tiny" chord segments (1 char) that cause the first letter to drop.
+    // If a chord segment has <2 chars, borrow chars from the next segment.
+    for (let i = 0; i < result.length - 1; i++) {
+      const curr = result[i];
+      const next = result[i + 1];
+      if (!curr.chord) continue;
+      const currText = curr.text === "\u00A0" ? "" : curr.text;
+      const nextText = next.text === "\u00A0" ? "" : next.text;
+
+      if (currText.length >= 2 || nextText.length === 0) continue;
+
+      const need = 2 - currText.length;
+      const take = nextText.slice(0, need);
+      const rest = nextText.slice(need);
+
+      curr.text = (currText + take) || "\u00A0";
+      next.text = rest || "\u00A0";
+    }
+
     return result;
   }, [lyrics, chords, semitones]);
 
