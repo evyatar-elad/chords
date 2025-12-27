@@ -395,6 +395,79 @@ interface ExtractedChordPosition {
   position: number;
 }
 
+/**
+ * Tokenize a potentially glued chord string like "E7Am" or "AmDm" into separate chords.
+ * Handles uppercase and lowercase roots (for cases like "E7am").
+ */
+function tokenizeGluedChords(chordLabel: string): string[] {
+  const raw = (chordLabel ?? "").trim();
+  if (!raw) return [];
+
+  const tokens: string[] = [];
+  let current = "";
+  let i = 0;
+
+  while (i < raw.length) {
+    const ch = raw[i];
+
+    // Skip whitespace and separators
+    if (/[\s(),\u200E\u200F\u202A-\u202E\u2066-\u2069]/.test(ch)) {
+      if (current) {
+        tokens.push(current);
+        current = "";
+      }
+      i++;
+      continue;
+    }
+
+    // Check if this is a chord root (A-G uppercase OR a-g lowercase when glued)
+    const isUpperRoot = /[A-G]/.test(ch);
+    const isLowerRoot = /[a-g]/.test(ch);
+    
+    // Lowercase root only starts new chord if:
+    // - We already have content AND
+    // - Previous char is a digit or closing paren (indicating end of previous chord modifier)
+    const prevChar = i > 0 ? raw[i - 1] : "";
+    const shouldSplitOnLower = isLowerRoot && current && /[0-9)]/.test(prevChar);
+    
+    if (isUpperRoot || shouldSplitOnLower) {
+      // If we already have a chord building, save it first
+      // Exception: if previous char was '/', this is a bass note
+      if (current && prevChar !== "/") {
+        tokens.push(current);
+        current = "";
+      }
+      current += ch;
+      i++;
+
+      // Optional sharp or flat immediately after root
+      if (i < raw.length && /[#b♯♭]/.test(raw[i])) {
+        current += raw[i];
+        i++;
+      }
+      continue;
+    }
+
+    // Slash - could be slash chord bass note coming
+    if (ch === "/") {
+      current += ch;
+      i++;
+      continue;
+    }
+
+    // Any other character (modifiers, numbers) - add to current chord
+    current += ch;
+    i++;
+  }
+
+  // Don't forget the last chord
+  if (current) {
+    tokens.push(current);
+  }
+
+  return tokens;
+}
+
 function extractChordPositions(html: string): ExtractedChordPosition[] {
   const chords: ExtractedChordPosition[] = [];
   const chordRegex = /<span[^>]*class="c_C"[^>]*>([^<]*)<\/span>/gi;
@@ -403,11 +476,19 @@ function extractChordPositions(html: string): ExtractedChordPosition[] {
   let match;
   
   while ((match = chordRegex.exec(processedHtml)) !== null) {
-    const chord = match[1].trim();
-    if (chord) {
+    const rawChord = match[1].trim();
+    if (rawChord) {
       // Calculate position based on text before this match (excluding HTML tags)
       const textBefore = processedHtml.substring(0, match.index).replace(/<[^>]+>/g, '');
-      chords.push({ chord, position: textBefore.length });
+      const position = textBefore.length;
+      
+      // Split glued chords (e.g., "E7Am" -> ["E7", "Am"])
+      const tokens = tokenizeGluedChords(rawChord);
+      
+      // Add each token as a separate chord at the same position
+      for (const chord of tokens) {
+        chords.push({ chord, position });
+      }
     }
   }
   
