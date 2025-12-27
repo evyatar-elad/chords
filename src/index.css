@@ -119,9 +119,9 @@
     min-width: 0;
   }
 
-  /* Stabilize chord segments so the first letter won't drop to the next line */
+  /* Chord segments - no min-width to avoid extra gaps */
   .segment--chord {
-    min-width: 4ch;
+    /* min-width removed to prevent spacing issues at line ends */
   }
 
   .segment:last-child {
