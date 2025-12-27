@@ -80,12 +80,9 @@ export function SongDisplayPaged({
     const measure = measureRef.current;
     if (!container || !measure) return;
 
-    // Get actual available height (subtract padding)
     const cs = window.getComputedStyle(container);
     const padTop = parseFloat(cs.paddingTop) || 0;
     const padBottom = parseFloat(cs.paddingBottom) || 0;
-    
-    // Use a significant safety margin to prevent any cutoff
     const safetyPx = 24;
     const containerHeight = Math.max(0, container.clientHeight - padTop - padBottom - safetyPx);
     const containerWidth = container.clientWidth;
@@ -93,8 +90,7 @@ export function SongDisplayPaged({
 
     if (!containerHeight || !containerWidth || cols === 0) return;
 
-    // Calculate column width accounting for padding between columns
-    const colPadding = 12; // 0.75rem * 2 sides = ~24px total, but shared
+    const colPadding = 12;
     const totalPadding = colPadding * (cols - 1);
     const columnWidth = Math.floor((containerWidth - totalPadding) / cols);
 
@@ -108,13 +104,11 @@ export function SongDisplayPaged({
         return;
       }
 
-      // Measure each line's height
       const heights: number[] = [];
       nodes.forEach((node) => {
         heights.push(Math.ceil(node.getBoundingClientRect().height));
       });
 
-      // Distribute lines into pages and columns
       const newPages: SongLine[][][] = [];
       let pageCols: SongLine[][] = [];
       let colLines: SongLine[] = [];
@@ -123,13 +117,11 @@ export function SongDisplayPaged({
       for (let i = 0; i < lines.length; i++) {
         const h = heights[i] ?? 0;
 
-        // If adding this line would exceed column height, start new column
         if (colLines.length > 0 && colHeight + h > containerHeight) {
           pageCols.push(colLines);
           colLines = [];
           colHeight = 0;
 
-          // If we've filled all columns on this page, start new page
           if (pageCols.length === cols) {
             newPages.push(pageCols);
             pageCols = [];
@@ -140,7 +132,6 @@ export function SongDisplayPaged({
         colHeight += h;
       }
 
-      // Add remaining content
       if (colLines.length > 0) {
         pageCols.push(colLines);
       }
@@ -148,7 +139,6 @@ export function SongDisplayPaged({
         newPages.push(pageCols);
       }
 
-      // Pad incomplete pages with empty columns for consistent layout
       const padded = newPages.map((p) => {
         const copy = [...p];
         while (copy.length < cols) copy.push([]);
@@ -161,28 +151,27 @@ export function SongDisplayPaged({
     return () => cancelAnimationFrame(raf);
   }, [inputSignature, lines, fontSize, transposition, columnCount]);
 
-  // Notify parent of total pages
   useEffect(() => {
     onTotalPagesChange?.(Math.max(1, pages.length));
   }, [pages.length, onTotalPagesChange]);
 
-  // Get current page columns - reverse for RTL (first column on right)
+  // Get current page columns - DO NOT reverse, let CSS direction:rtl handle visual order
   const currentPageCols = pages[currentPage] || [];
   const visualColumns = currentPageCols.length
-    ? [...currentPageCols].reverse()
+    ? currentPageCols
     : Array.from({ length: columnCount }, () => [] as SongLine[]);
 
   return (
     <div
       ref={containerRef}
-      className="song-display-new"
+      className="song-container"
       style={{ fontSize: `${fontSize}px` }}
     >
-      <div className="song-page-new">
+      <div className="song-columns">
         {visualColumns.map((columnLines, colIdx) => (
           <div 
             key={colIdx} 
-            className={`song-column-new ${colIdx > 0 ? 'with-separator' : ''}`}
+            className="song-col"
           >
             {columnLines.map((line, lineIdx) => (
               <SongLineRenderer 
@@ -195,7 +184,7 @@ export function SongDisplayPaged({
         ))}
       </div>
 
-      {/* Hidden measurement container - uses same components */}
+      {/* Hidden measurement container */}
       <div
         ref={measureRef}
         style={{
