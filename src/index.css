@@ -107,6 +107,7 @@
     direction: rtl;
     text-align: right;
     margin-bottom: 0.25em;
+    column-gap: 0; /* No gap - segments define their own spacing via padding */
   }
 
   /* Each segment: chord on top, text on bottom */
@@ -115,7 +116,12 @@
     flex-direction: column;
     align-items: flex-start;
     flex: 0 0 auto;
-    min-width: 2ch; /* Prevent tiny segments from wrapping to new line */
+    /* Use padding instead of margin for more stable wrapping */
+    padding-left: 0.3em;
+  }
+
+  .segment:last-child {
+    padding-left: 0;
   }
 
   .segment-chord {
