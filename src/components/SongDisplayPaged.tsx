@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { SongLine } from "@/lib/api";
-import { renderSongLine } from "@/components/song/songLineRenderers";
+import { SongLineRenderer } from "@/components/song/SongLineRenderer";
+import type { SongLineData } from "@/components/song/types";
 
 interface SongDisplayPagedProps {
   lines: SongLine[];
@@ -14,6 +15,30 @@ function getColumnCount(width: number) {
   if (width >= 900) return 3;
   if (width >= 600) return 2;
   return 1;
+}
+
+// Convert API SongLine to component SongLineData
+function toSongLineData(line: SongLine): SongLineData {
+  switch (line.type) {
+    case "lyrics":
+      return {
+        type: "lyrics",
+        lyrics: line.lyrics,
+        chords: line.chords.map(c => ({ chord: c.chord, at: c.at })),
+      };
+    case "chords-only":
+      return {
+        type: "chords-only",
+        chords: line.chords,
+      };
+    case "section":
+      return {
+        type: "section",
+        text: line.text,
+      };
+    case "empty":
+      return { type: "empty" };
+  }
 }
 
 export function SongDisplayPaged({
@@ -141,29 +166,36 @@ export function SongDisplayPaged({
     onTotalPagesChange?.(Math.max(1, pages.length));
   }, [pages.length, onTotalPagesChange]);
 
-  // Get current page columns (reversed for RTL: first column appears on right)
+  // Get current page columns - reverse for RTL (first column on right)
   const currentPageCols = pages[currentPage] || [];
   const visualColumns = currentPageCols.length
-    ? [...currentPageCols].reverse() // Reverse so first column is on the right
+    ? [...currentPageCols].reverse()
     : Array.from({ length: columnCount }, () => [] as SongLine[]);
 
   return (
     <div
       ref={containerRef}
-      className="song-display"
+      className="song-display-new"
       style={{ fontSize: `${fontSize}px` }}
     >
-      <div className="song-page">
+      <div className="song-page-new">
         {visualColumns.map((columnLines, colIdx) => (
-          <div key={colIdx} className="song-column">
-            {columnLines.map((line, lineIdx) => 
-              renderSongLine(line, `${currentPage}-${colIdx}-${lineIdx}` as unknown as number, transposition)
-            )}
+          <div 
+            key={colIdx} 
+            className={`song-column-new ${colIdx > 0 ? 'with-separator' : ''}`}
+          >
+            {columnLines.map((line, lineIdx) => (
+              <SongLineRenderer 
+                key={`${currentPage}-${colIdx}-${lineIdx}`}
+                line={toSongLineData(line)} 
+                transposition={transposition} 
+              />
+            ))}
           </div>
         ))}
       </div>
 
-      {/* Hidden measurement container */}
+      {/* Hidden measurement container - uses same components */}
       <div
         ref={measureRef}
         style={{
@@ -179,7 +211,7 @@ export function SongDisplayPaged({
       >
         {lines.map((line, idx) => (
           <div key={idx} data-line-idx={idx}>
-            {renderSongLine(line, idx, transposition)}
+            <SongLineRenderer line={toSongLineData(line)} transposition={transposition} />
           </div>
         ))}
       </div>

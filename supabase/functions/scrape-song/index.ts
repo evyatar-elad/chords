@@ -7,16 +7,33 @@ interface ScrapeRequest {
   url: string;
 }
 
-interface ChordUnit {
-  chord: string | null;
+// New deterministic data model
+interface ChordPosition {
+  chord: string;
+  at: number; // character offset in lyrics
+}
+
+interface LyricsLine {
+  type: 'lyrics';
+  lyrics: string;
+  chords: ChordPosition[];
+}
+
+interface ChordsOnlyLine {
+  type: 'chords-only';
+  chords: string[];
+}
+
+interface SectionLine {
+  type: 'section';
   text: string;
 }
 
-interface SongLine {
-  type: 'lyrics' | 'chords-only' | 'section' | 'empty';
-  units?: ChordUnit[];
-  text?: string;
+interface EmptyLine {
+  type: 'empty';
 }
+
+type SongLine = LyricsLine | ChordsOnlyLine | SectionLine | EmptyLine;
 
 interface SongData {
   title: string;
@@ -246,22 +263,26 @@ function parseTableRows(tableHtml: string): SongLine[] {
       
       // Check if next row is lyrics
       if (i + 1 < rows.length && rows[i + 1].type === 'lyrics') {
-        // Combine chords with lyrics
+        // Combine chords with lyrics - new format
         const lyricsText = extractLyricsText(rows[i + 1].content);
-        const units = combineChordWithLyrics(chordPositions, lyricsText);
+        const chordsWithAt: ChordPosition[] = chordPositions.map(cp => ({
+          chord: cp.chord,
+          at: cp.position
+        }));
         
-        if (units.length > 0) {
-          result.push({ type: 'lyrics', units });
-        }
+        result.push({ 
+          type: 'lyrics', 
+          lyrics: lyricsText, 
+          chords: chordsWithAt 
+        });
         i += 2;
       } else {
         // Chords only line (intro/transition)
         if (chordPositions.length > 0) {
-          const units: ChordUnit[] = chordPositions.map((cp, idx) => ({
-            chord: cp.chord,
-            text: idx < chordPositions.length - 1 ? '   ' : '' // spacing between chords
-          }));
-          result.push({ type: 'chords-only', units });
+          result.push({ 
+            type: 'chords-only', 
+            chords: chordPositions.map(cp => cp.chord) 
+          });
         }
         i++;
       }
@@ -271,7 +292,8 @@ function parseTableRows(tableHtml: string): SongLine[] {
       if (lyricsText.trim()) {
         result.push({ 
           type: 'lyrics', 
-          units: [{ chord: null, text: lyricsText }] 
+          lyrics: lyricsText,
+          chords: []
         });
       }
       i++;
@@ -283,13 +305,13 @@ function parseTableRows(tableHtml: string): SongLine[] {
   return result;
 }
 
-interface ChordPosition {
+interface ExtractedChordPosition {
   chord: string;
   position: number;
 }
 
-function extractChordPositions(html: string): ChordPosition[] {
-  const chords: ChordPosition[] = [];
+function extractChordPositions(html: string): ExtractedChordPosition[] {
+  const chords: ExtractedChordPosition[] = [];
   const chordRegex = /<span[^>]*class="c_C"[^>]*>([^<]*)<\/span>/gi;
   
   let processedHtml = html.replace(/&nbsp;/g, ' ');
@@ -323,49 +345,4 @@ function extractLyricsText(html: string): string {
   text = text.replace(/&quot;/g, '"');
   
   return text;
-}
-
-function combineChordWithLyrics(chords: ChordPosition[], lyrics: string): ChordUnit[] {
-  if (chords.length === 0) {
-    return lyrics.trim() ? [{ chord: null, text: lyrics }] : [];
-  }
-  
-  const units: ChordUnit[] = [];
-  
-  // Sort chords by position
-  const sortedChords = [...chords].sort((a, b) => a.position - b.position);
-  
-  let lastPos = 0;
-  
-  for (let i = 0; i < sortedChords.length; i++) {
-    const chord = sortedChords[i];
-    const nextChord = sortedChords[i + 1];
-    
-    // Determine the end position for this chord's text
-    const endPos = nextChord ? nextChord.position : lyrics.length;
-    
-    // Get the text segment for this chord
-    const textSegment = lyrics.substring(chord.position, endPos);
-    
-    // If there's text before the first chord, add it as a unit without chord
-    if (i === 0 && chord.position > 0) {
-      const beforeText = lyrics.substring(0, chord.position);
-      if (beforeText.trim()) {
-        units.push({ chord: null, text: beforeText });
-      }
-    }
-    
-    units.push({ chord: chord.chord, text: textSegment });
-    lastPos = endPos;
-  }
-  
-  // Add any remaining text after the last chord
-  if (lastPos < lyrics.length) {
-    const remainingText = lyrics.substring(lastPos);
-    if (remainingText.trim()) {
-      units.push({ chord: null, text: remainingText });
-    }
-  }
-  
-  return units;
 }

@@ -1,15 +1,32 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export interface ChordUnit {
-  chord: string | null;
+// New deterministic data model
+export interface ChordPosition {
+  chord: string;
+  at: number; // character offset in lyrics
+}
+
+export interface LyricsLine {
+  type: 'lyrics';
+  lyrics: string;
+  chords: ChordPosition[];
+}
+
+export interface ChordsOnlyLine {
+  type: 'chords-only';
+  chords: string[];
+}
+
+export interface SectionLine {
+  type: 'section';
   text: string;
 }
 
-export interface SongLine {
-  type: 'lyrics' | 'chords-only' | 'section' | 'empty';
-  units?: ChordUnit[];
-  text?: string;
+export interface EmptyLine {
+  type: 'empty';
 }
+
+export type SongLine = LyricsLine | ChordsOnlyLine | SectionLine | EmptyLine;
 
 export interface SongData {
   title: string;
