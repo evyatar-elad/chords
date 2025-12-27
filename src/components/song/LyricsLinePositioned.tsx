@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { ChordPosition } from "./types";
 import { transposeChord } from "@/lib/transposition";
 
@@ -9,65 +9,78 @@ interface LyricsLinePositionedProps {
 }
 
 /**
- * Renders lyrics with chords using a grid/flex approach.
- * Segments are NOT reversed - RTL flex handles visual ordering.
+ * Deterministic renderer:
+ * - Render the lyrics as ONE plain RTL text node (prevents Hebrew corruption)
+ * - Place chords above using DOM Range caret measurement at character offsets
  */
 export function LyricsLinePositioned({
   lyrics,
   chords,
   transposition,
 }: LyricsLinePositionedProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [placed, setPlaced] = useState<Array<{ chord: string; rightPx: number }>>([]);
+
   const semitones = Math.round(transposition * 2);
 
-  // Build segments from chord positions
-  const segments = useMemo(() => {
-    if (chords.length === 0) {
-      return [{ text: lyrics, chord: null as string | null }];
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const textEl = textRef.current;
+
+    if (!container || !textEl) return;
+
+    const textNode = textEl.firstChild;
+    if (!textNode || textNode.nodeType !== Node.TEXT_NODE || chords.length === 0) {
+      setPlaced([]);
+      return;
     }
 
-    // Sort chords by position
-    const sorted = [...chords].sort((a, b) => a.at - b.at);
-    const result: Array<{ text: string; chord: string | null }> = [];
+    const containerRect = container.getBoundingClientRect();
+    const tn = textNode as Text;
 
-    let lastEnd = 0;
+    const next: Array<{ chord: string; rightPx: number }> = [];
 
-    for (let i = 0; i < sorted.length; i++) {
-      const { chord, at } = sorted[i];
-      
-      // Text before this chord position (no chord above it)
-      if (at > lastEnd) {
-        result.push({ text: lyrics.slice(lastEnd, at), chord: null });
+    for (const { chord, at } of chords) {
+      const pos = Math.min(Math.max(0, at), tn.length);
+      try {
+        const range = document.createRange();
+        range.setStart(tn, pos);
+        range.setEnd(tn, pos);
+
+        // In RTL, the caret rect's LEFT corresponds to the visual insertion point.
+        const rect = range.getBoundingClientRect();
+        if (rect && rect.width !== 0 || rect.height !== 0) {
+          const rightPx = Math.max(0, containerRect.right - rect.left);
+          next.push({
+            chord: transposeChord(chord, semitones),
+            rightPx,
+          });
+        }
+      } catch {
+        // ignore
       }
-
-      // Find where this chord's segment ends
-      const nextAt = sorted[i + 1]?.at ?? lyrics.length;
-      const segmentText = lyrics.slice(at, nextAt);
-      
-      result.push({
-        text: segmentText || "\u00A0",
-        chord: transposeChord(chord, semitones),
-      });
-
-      lastEnd = nextAt;
     }
 
-    // Any remaining text after last chord
-    if (lastEnd < lyrics.length) {
-      result.push({ text: lyrics.slice(lastEnd), chord: null });
-    }
-
-    return result;
+    setPlaced(next);
   }, [lyrics, chords, semitones]);
 
-  // Render segments in order - RTL flex will handle right-to-left visual flow
   return (
-    <div className="lyrics-line-grid">
-      {segments.map((seg, idx) => (
-        <span key={idx} className="lyric-segment">
-          <span className="seg-chord">{seg.chord || "\u00A0"}</span>
-          <span className="seg-text">{seg.text}</span>
-        </span>
-      ))}
+    <div ref={containerRef} className="lyrics-line-measured">
+      <div className="chords-layer" aria-hidden="true">
+        {placed.map((c, i) => (
+          <span
+            key={i}
+            className="measured-chord"
+            style={{ right: `${c.rightPx}px` }}
+          >
+            {c.chord}
+          </span>
+        ))}
+      </div>
+      <span ref={textRef} className="lyrics-text-plain">
+        {lyrics}
+      </span>
     </div>
   );
 }

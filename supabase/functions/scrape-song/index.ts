@@ -265,10 +265,17 @@ function parseTableRows(tableHtml: string): SongLine[] {
       if (i + 1 < rows.length && rows[i + 1].type === 'lyrics') {
         // Combine chords with lyrics - new format
         const lyricsText = extractLyricsText(rows[i + 1].content);
-        const chordsWithAt: ChordPosition[] = chordPositions.map(cp => ({
-          chord: cp.chord,
-          at: cp.position
-        }));
+
+        // NOTE: Tab4U chord positions are effectively measured from the LEFT edge of the rendered line,
+        // while Hebrew lyrics render RTL. Convert "position" to an RTL-friendly offset into the string.
+        // This fixes the apparent reversed chord order.
+        const len = lyricsText.length;
+        const chordsWithAt: ChordPosition[] = chordPositions
+          .map((cp) => ({
+            chord: cp.chord,
+            at: Math.min(len, Math.max(0, len - cp.position)),
+          }))
+          .sort((a, b) => a.at - b.at);
         
         result.push({ 
           type: 'lyrics', 
