@@ -13,11 +13,10 @@ export function ChordsOnlyLineNew({ chords, transposition }: ChordsOnlyLineNewPr
   const semitones = Math.round(transposition * 2);
 
   return (
-    <div className="lyrics-row">
+    <div className="chords-only-line-new">
       {chords.map((chord, idx) => (
-        <span key={idx} className="segment segment--chord">
-          <span className="segment-chord">{transposeChord(chord, semitones)}</span>
-          <span className="segment-text">{"\u00A0"}</span>
+        <span key={idx} className="chord-item-new">
+          {transposeChord(chord, semitones)}
         </span>
       ))}
     </div>
