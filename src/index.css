@@ -115,7 +115,7 @@
     flex-direction: column;
     align-items: flex-start;
     flex: 0 0 auto;
-    min-width: 0;
+    min-width: 2ch; /* Prevent tiny segments from wrapping to new line */
   }
 
   .segment-chord {
@@ -145,9 +145,7 @@
   .chords-only-line-new {
     display: flex;
     flex-wrap: wrap;
-    /* Keep RTL alignment but reverse visual order to match lyrics conversion */
-    direction: ltr;
-    flex-direction: row-reverse;
+    direction: rtl;
     justify-content: flex-start;
     gap: 0.75em;
     margin-bottom: 0.5em;

@@ -62,46 +62,6 @@ export function LyricsLinePositioned({
       result.push({ text: lyrics.slice(lastEnd), chord: null });
     }
 
-    // Heuristic 1: prevent "tiny" chord segments by borrowing from the next segment.
-    // Using 4 chars makes wrapping much more stable in narrow columns.
-    const MIN_SEG_CHARS = 4;
-
-    for (let i = 0; i < result.length - 1; i++) {
-      const curr = result[i];
-      const next = result[i + 1];
-      if (!curr.chord) continue;
-      const currText = curr.text === "\u00A0" ? "" : curr.text;
-      const nextText = next.text === "\u00A0" ? "" : next.text;
-
-      if (currText.length >= MIN_SEG_CHARS || nextText.length === 0) continue;
-
-      const need = Math.min(MIN_SEG_CHARS - currText.length, nextText.length);
-      const take = nextText.slice(0, need);
-      const rest = nextText.slice(need);
-
-      curr.text = (currText + take) || "\u00A0";
-      next.text = rest || "\u00A0";
-    }
-
-    // Heuristic 2 (RTL-specific): the *visual first* segment is the last in the array.
-    // If that last segment is short, it tends to wrap to the next line ("first letters drop").
-    // Stabilize it by borrowing chars from the previous segment's END.
-    for (let i = result.length - 1; i > 0; i--) {
-      const curr = result[i];
-      const prev = result[i - 1];
-      const currText = curr.text === "\u00A0" ? "" : curr.text;
-      const prevText = prev.text === "\u00A0" ? "" : prev.text;
-
-      if (currText.length >= MIN_SEG_CHARS || prevText.length === 0) continue;
-
-      const need = Math.min(MIN_SEG_CHARS - currText.length, prevText.length);
-      const take = prevText.slice(Math.max(0, prevText.length - need));
-      const rest = prevText.slice(0, Math.max(0, prevText.length - need));
-
-      prev.text = rest || "\u00A0";
-      curr.text = (take + currText) || "\u00A0";
-    }
-
     return result;
   }, [lyrics, chords, semitones]);
 
