@@ -107,7 +107,7 @@
     direction: rtl;
     text-align: right;
     margin-bottom: 0.25em;
-    column-gap: 0; /* No gap - segments define their own spacing via padding */
+    align-items: flex-start;
   }
 
   /* Each segment: chord on top, text on bottom */
@@ -116,8 +116,13 @@
     flex-direction: column;
     align-items: flex-start;
     flex: 0 0 auto;
-    /* Use padding instead of margin for more stable wrapping */
     padding-left: 0.3em;
+    min-width: 0;
+  }
+
+  /* Stabilize chord segments so the first letter won't drop to the next line */
+  .segment--chord {
+    min-width: 4ch;
   }
 
   .segment:last-child {
@@ -136,13 +141,10 @@
     unicode-bidi: isolate;
   }
 
-  /* Allow wrapping inside the segment so we don't push single letters to a new line */
+  /* Wrap only BETWEEN segments (not inside), to avoid single letters dropping */
   .segment-text {
     display: inline;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-    word-break: normal;
-    max-width: 100%;
+    white-space: pre;
     direction: rtl;
     unicode-bidi: plaintext;
   }
