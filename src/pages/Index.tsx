@@ -79,7 +79,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-dark" dir="rtl">
       {/* Header always visible */}
-      <header className="sticky top-0 z-40 glass">
+      <header
+        className="sticky top-0 z-40 glass"
+        ref={(node) => {
+          if (!node) return;
+          const h = node.offsetHeight || 56;
+          node.closest<HTMLElement>("[dir=rtl]")?.style.setProperty("--header-h", `${h}px`);
+        }}
+      >
         <div className="container max-w-6xl mx-auto px-4 py-2">
           <div className="flex items-center gap-3">
             {song ? (
@@ -153,9 +160,9 @@ const Index = () => {
       </header>
 
       {/* Main content */}
-      <main className="min-h-[calc(100vh-56px)]">
+      <main className="min-h-[calc(100vh-var(--header-h,56px))]">
         {!song ? (
-          <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center px-4 py-12">
+          <div className="min-h-[calc(100vh-var(--header-h,56px))] flex flex-col items-center justify-center px-4 py-12">
             <div className="text-center mb-12">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 mb-6">
                 <Guitar className="w-10 h-10 text-primary" />
@@ -169,9 +176,9 @@ const Index = () => {
             </div>
           </div>
         ) : (
-          <div className="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
+          <div className="h-[calc(100vh-var(--header-h,56px))] flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
-              <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-1">
+              <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-1 overflow-hidden">
                 <SongDisplayPaged
                   lines={song.lines}
                   transposition={transposition}
