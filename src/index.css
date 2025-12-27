@@ -82,8 +82,9 @@
 }
 
 @layer utilities {
-  /* Song display container - paged layout */
-  .song-display {
+  /* ===== NEW DETERMINISTIC SONG DISPLAY ===== */
+  
+  .song-display-new {
     font-family: var(--font-hebrew);
     direction: rtl;
     text-align: right;
@@ -91,8 +92,7 @@
     height: 100%;
   }
 
-  /* Paged columns layout - columns rendered in code order, managed via JS */
-  .song-page {
+  .song-page-new {
     display: flex;
     flex-direction: row;
     gap: 0;
@@ -100,44 +100,38 @@
     align-items: stretch;
   }
 
-  .song-column {
+  .song-column-new {
     flex: 1;
     overflow: hidden;
     min-width: 0;
     padding: 0 0.75rem;
   }
 
-  /* First column (visually rightmost when columns are reversed in code) has no left border */
-  .song-column:first-child {
+  .song-column-new:first-child {
     padding-right: 0;
   }
 
-  /* Last column (visually leftmost) has no left border */
-  .song-column:last-child {
+  .song-column-new:last-child {
     padding-left: 0;
   }
 
-  /* Middle/left columns get a separator */
-  .song-column:not(:first-child) {
+  /* Separator between columns - applied via class, not :first-child/:last-child */
+  .song-column-new.with-separator {
     border-left: 1px solid hsl(var(--border));
   }
 
-  .song-column > * {
-    break-inside: avoid;
-  }
-
-  /* Lyrics line: keep the whole line RTL (Hebrew-safe). Only chord text itself is LTR. */
-  .lyrics-line {
+  /* Lyrics line with positioned chords */
+  .lyrics-line-positioned {
     display: block;
     direction: rtl;
-    unicode-bidi: plaintext;
     text-align: right;
     margin-bottom: 0.5em;
     white-space: normal;
+    unicode-bidi: plaintext;
   }
 
-  /* Each chord+text unit - relative positioning for chord above */
-  .chord-unit {
+  /* Each segment: chord above + text below */
+  .lyrics-segment {
     display: inline-block;
     position: relative;
     vertical-align: bottom;
@@ -145,8 +139,7 @@
     line-height: 1.2;
   }
 
-  /* Place chord above the *start* of the RTL unit (right edge) */
-  .chord-above {
+  .segment-chord {
     position: absolute;
     top: 0;
     right: 0;
@@ -162,34 +155,29 @@
     line-height: 1;
   }
 
-  .chord-text {
+  .segment-text {
     display: inline;
     direction: rtl;
     unicode-bidi: plaintext;
   }
 
-  /* Chords-only lines (no lyrics): LTR aligned */
-  .chords-only-line {
+  /* Chords-only line */
+  .chords-only-line-new {
     display: flex;
     flex-wrap: wrap;
-    direction: ltr;
-    justify-content: flex-start;
-    gap: 0.5em;
+    direction: rtl;
+    justify-content: flex-end;
+    gap: 0.75em;
     margin-bottom: 0.5em;
-    max-width: 100%;
   }
 
-  @media (min-width: 1024px) {
-    .chords-only-line {
-      max-width: 80%;
-    }
-  }
-
-  .chord-item .chord {
+  .chord-item-new {
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
     font-family: var(--font-mono);
+    direction: ltr;
+    unicode-bidi: isolate;
   }
 
   /* Section header */
@@ -205,13 +193,6 @@
   /* Empty line */
   .empty-line {
     height: 1em;
-  }
-
-  /* Legacy chord styling */
-  .chord {
-    color: hsl(var(--chord));
-    text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
-    font-weight: 600;
   }
 
   /* Glass effect for toolbar */
