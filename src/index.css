@@ -4,49 +4,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tab4U Viewer - Dark Mode Design System */
-
 @layer base {
   :root {
     --background: 240 10% 4%;
     --foreground: 0 0% 95%;
-
     --card: 240 10% 6%;
     --card-foreground: 0 0% 95%;
-
     --popover: 240 10% 6%;
     --popover-foreground: 0 0% 95%;
-
     --primary: 187 100% 42%;
     --primary-foreground: 240 10% 4%;
-
     --secondary: 240 10% 12%;
     --secondary-foreground: 0 0% 95%;
-
     --muted: 240 10% 15%;
     --muted-foreground: 240 5% 65%;
-
     --accent: 187 100% 42%;
     --accent-foreground: 240 10% 4%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-
     --border: 240 10% 18%;
     --input: 240 10% 15%;
     --ring: 187 100% 42%;
-
     --radius: 0.75rem;
-
-    /* Custom tokens for chord display */
     --chord: 187 100% 50%;
     --chord-glow: 187 100% 70%;
-    
-    /* Toolbar */
     --toolbar: 240 10% 8%;
     --toolbar-border: 240 10% 20%;
-
-    /* Font families */
     --font-sans: 'Inter', sans-serif;
     --font-mono: 'Roboto Mono', monospace;
     --font-hebrew: Arial, 'Rubik', 'Heebo', sans-serif;
@@ -61,7 +44,6 @@
     font-family: var(--font-sans);
   }
 
-  /* Scrollbar styling */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -82,9 +64,9 @@
 }
 
 @layer utilities {
-  /* ===== NEW DETERMINISTIC SONG DISPLAY ===== */
+  /* ===== SONG DISPLAY - SIMPLE RTL ===== */
   
-  .song-display-new {
+  .song-container {
     font-family: var(--font-hebrew);
     direction: rtl;
     text-align: right;
@@ -92,58 +74,52 @@
     height: 100%;
   }
 
-  .song-page-new {
+  /* Columns container - direction:rtl makes first column appear on RIGHT */
+  .song-columns {
     display: flex;
     flex-direction: row;
-    gap: 0;
     height: 100%;
-    align-items: stretch;
   }
 
-  .song-column-new {
+  .song-col {
     flex: 1;
-    overflow: hidden;
     min-width: 0;
     padding: 0 0.75rem;
-  }
-
-  .song-column-new:first-child {
-    padding-right: 0;
-  }
-
-  .song-column-new:last-child {
-    padding-left: 0;
-  }
-
-  /* Separator between columns - applied via class, not :first-child/:last-child */
-  .song-column-new.with-separator {
     border-left: 1px solid hsl(var(--border));
   }
 
-  /* Lyrics line with positioned chords */
-  .lyrics-line-positioned {
-    display: block;
+  /* First column (rightmost in RTL) - no left border */
+  .song-col:first-child {
+    border-left: none;
+    padding-right: 0;
+  }
+
+  /* Last column (leftmost in RTL) */
+  .song-col:last-child {
+    padding-left: 0;
+  }
+
+  /* Lyrics line with measured chord positions */
+  .lyrics-line-measured {
+    position: relative;
     direction: rtl;
     text-align: right;
     margin-bottom: 0.5em;
-    white-space: normal;
-    unicode-bidi: plaintext;
+    padding-top: 1.4em; /* Space for chords above */
   }
 
-  /* Each segment: chord above + text below */
-  .lyrics-segment {
-    display: inline-block;
-    position: relative;
-    vertical-align: bottom;
-    padding-top: 1.4em;
-    line-height: 1.2;
-  }
-
-  .segment-chord {
+  .chords-layer {
     position: absolute;
     top: 0;
+    left: 0;
     right: 0;
-    left: auto;
+    height: 1.4em;
+    pointer-events: none;
+  }
+
+  .measured-chord {
+    position: absolute;
+    top: 0;
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
@@ -151,12 +127,9 @@
     font-size: 0.85em;
     white-space: nowrap;
     direction: ltr;
-    unicode-bidi: isolate;
-    line-height: 1;
   }
 
-  .segment-text {
-    display: inline;
+  .lyrics-text-plain {
     direction: rtl;
     unicode-bidi: plaintext;
   }
@@ -166,7 +139,7 @@
     display: flex;
     flex-wrap: wrap;
     direction: rtl;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 0.75em;
     margin-bottom: 0.5em;
   }
@@ -177,7 +150,6 @@
     font-weight: 600;
     font-family: var(--font-mono);
     direction: ltr;
-    unicode-bidi: isolate;
   }
 
   /* Section header */
@@ -186,7 +158,6 @@
     color: hsl(var(--muted-foreground));
     margin-top: 1.5em;
     margin-bottom: 0.5em;
-    padding-top: 0;
     direction: rtl;
   }
 
