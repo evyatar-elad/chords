@@ -159,6 +159,11 @@
     white-space: nowrap;
   }
 
+  /* Fallback spacing for consecutive chord tokens */
+  .chord-token + .chord-token {
+    margin-left: 0.6em;
+  }
+
   /* Preserve spaces inside text, allow wrap between segments */
   .segment-text {
     display: inline;
