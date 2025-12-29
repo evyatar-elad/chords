@@ -352,19 +352,69 @@ const Index = () => {
                 </Button>
               </div>
 
-              {/* Row 3: Toolbar (only when song loaded) */}
+              {/* Row 3: Controls (only when song loaded) */}
               {song && (
-                <div className="flex items-center justify-center">
-                  <FloatingToolbar
-                    transposition={transposition}
-                    onTranspositionChange={setTransposition}
-                    fontSize={fontSize}
-                    onFontSizeChange={setFontSize}
-                    originalTransposition={originalTransposition}
-                    onResetToOriginal={handleResetToOriginal}
-                    debug={false}
-                    onDebugToggle={() => {}}
-                  />
+                <div className="flex items-center justify-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setTransposition(transposition + 1)}
+                    className="shrink-0 h-7 w-7"
+                    title="העלה טון"
+                  >
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  </Button>
+
+                  <span className="text-xs font-mono tabular-nums text-foreground px-1.5 min-w-[2rem] text-center">
+                    {transposition > 0 ? `+${transposition}` : transposition}
+                  </span>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setTransposition(transposition - 1)}
+                    className="shrink-0 h-7 w-7"
+                    title="הורד טון"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+
+                  <div className="w-px h-5 bg-border mx-1" />
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFontSize(fontSize + 1)}
+                    className="shrink-0 h-7 px-2"
+                    title="הגדל טקסט"
+                  >
+                    <span className="text-xs font-bold">A+</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFontSize(fontSize - 1)}
+                    className="shrink-0 h-7 px-2"
+                    title="הקטן טקסט"
+                  >
+                    <span className="text-xs">A-</span>
+                  </Button>
+
+                  {transposition !== originalTransposition && (
+                    <>
+                      <div className="w-px h-5 bg-border mx-1" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleResetToOriginal}
+                        className="shrink-0 h-7 px-2 text-xs"
+                        title="אפס לסולם המקורי"
+                      >
+                        גרסה קלה
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
