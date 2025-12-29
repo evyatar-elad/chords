@@ -5,11 +5,14 @@ import { SongDisplayPaged } from "@/components/SongDisplayPaged";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
 import { QuickSongInput } from "@/components/QuickSongInput";
 import { Button } from "@/components/ui/button";
-import { scrapeSong, SongData } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { scrapeSong, searchSong, SongData } from "@/lib/api";
 
 const Index = () => {
+  const { toast } = useToast();
   const [song, setSong] = useState<SongData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string>("");
   const [transposition, setTransposition] = useState(0);
   const [originalTransposition, setOriginalTransposition] = useState(0);
   const [fontSize, setFontSize] = useState(16);
@@ -21,15 +24,42 @@ const Index = () => {
     return localStorage.getItem("debugPagination") === "1";
   });
 
-  const handleSubmit = async (url: string) => {
+  const handleSubmit = async (input: string) => {
     setIsLoading(true);
     setSong(null);
     setTransposition(0);
     setOriginalTransposition(0);
     setCurrentPage(0);
+    setLoadingMessage("");
 
     try {
-      const response = await scrapeSong(url);
+      let urlToScrape = input;
+
+      // Detect if input is a URL or search text
+      const isUrl = input.startsWith('http://') || input.startsWith('https://') || input.includes('tab4u.com');
+
+      if (!isUrl) {
+        // It's a search query - search first
+        setLoadingMessage("מחפש...");
+        const searchResponse = await searchSong(input);
+
+        if (searchResponse.error || !searchResponse.url) {
+          toast({
+            title: "לא נמצא שיר מתאים",
+            description: searchResponse.message || "נסה לדייק את שם השיר או להזין לינק ישיר",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          setLoadingMessage("");
+          return;
+        }
+
+        urlToScrape = searchResponse.url;
+      }
+
+      // Now scrape the song
+      setLoadingMessage("טוען שיר...");
+      const response = await scrapeSong(urlToScrape);
 
       if (response.success && response.data) {
         setSong(response.data);
@@ -37,11 +67,23 @@ const Index = () => {
           setTransposition(response.data.transposition);
           setOriginalTransposition(response.data.transposition);
         }
+      } else {
+        toast({
+          title: "שגיאה בטעינת השיר",
+          description: response.error || "אנא נסה שנית",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error fetching song:", error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה בטעינת השיר",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
+      setLoadingMessage("");
     }
   };
 
@@ -173,7 +215,7 @@ const Index = () => {
             </div>
 
             <div className="shrink-0">
-              <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} />
+              <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
             </div>
           </div>
         </div>
