@@ -160,7 +160,7 @@ const Index = () => {
 
             <div className="flex-1 min-w-0 text-center">
               <h1 className="text-lg font-bold text-foreground truncate">
-                {song ? song.title : "האקורדים של אביתר2"}
+                {song ? song.title : "האקורדים של אביתר3"}
               </h1>
               <p className="text-sm text-muted-foreground truncate">
                 {song ? song.artist : "שירים בגרסאות קלות ועוד"}
@@ -230,7 +230,7 @@ const Index = () => {
                 <Guitar className="w-10 h-10 text-primary" />
               </div>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-                האקורדים של אביתר2
+                האקורדים של אביתר3
               </h2>
               <p className="text-lg text-muted-foreground max-w-md mx-auto">
                 שירים בגרסאות קלות ועוד
