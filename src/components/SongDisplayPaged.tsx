@@ -14,26 +14,16 @@ interface SongDisplayPagedProps {
 }
 
 function getColumnCount(width: number, height: number) {
-  // Desktop: always 3 columns
-  if (width >= 900) return 3;
+  // Desktop: 3 columns (large screen with normal height)
+  if (width >= 900 && height > 700) return 3;
 
-  // Mobile detection
-  const isMobile = width < 900;
-  const isPortrait = height > width;
-  const isLandscape = !isPortrait;
+  // Mobile Portrait: 2 columns
+  if (height > width) return 2;
 
-  // Mobile Portrait: single column
-  if (isMobile && isPortrait) return 1;
+  // Mobile Landscape: 3 columns (height < 700px)
+  if (height <= 700) return 3;
 
-  // Mobile Landscape: dynamic 2-3 columns based on width
-  // If width allows 3 columns of 300px+ with padding, use 3, otherwise 2
-  if (isMobile && isLandscape) {
-    const minColWidth = 300;
-    const padding = 48; // approximate total padding
-    const possibleCols = Math.floor((width - padding) / minColWidth);
-    return Math.min(Math.max(possibleCols, 2), 3);
-  }
-
+  // Fallback: 2 columns
   return 2;
 }
 
