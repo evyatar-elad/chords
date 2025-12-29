@@ -118,6 +118,7 @@
     text-align: right;
     margin-bottom: 0.25em;
     align-items: flex-start;
+    gap: 0.5em;
   }
 
   /* Each segment: chord on top, text on bottom */
