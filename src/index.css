@@ -152,6 +152,12 @@
     gap: 1.5em;
     flex-wrap: wrap;
     align-items: baseline;
+    padding-left: 0.4em;
+  }
+
+  /* Remove padding from first chord in a line */
+  .segment:first-child .segment-chord {
+    padding-left: 0;
   }
 
   .chord-token {
