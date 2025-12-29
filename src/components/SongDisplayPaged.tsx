@@ -13,10 +13,28 @@ interface SongDisplayPagedProps {
   debug?: boolean;
 }
 
-function getColumnCount(width: number) {
+function getColumnCount(width: number, height: number) {
+  // Desktop: always 3 columns
   if (width >= 900) return 3;
-  if (width >= 600) return 2;
-  return 1;
+
+  // Mobile detection
+  const isMobile = width < 900;
+  const isPortrait = height > width;
+  const isLandscape = !isPortrait;
+
+  // Mobile Portrait: single column
+  if (isMobile && isPortrait) return 1;
+
+  // Mobile Landscape: dynamic 2-3 columns based on width
+  // If width allows 3 columns of 300px+ with padding, use 3, otherwise 2
+  if (isMobile && isLandscape) {
+    const minColWidth = 300;
+    const padding = 48; // approximate total padding
+    const possibleCols = Math.floor((width - padding) / minColWidth);
+    return Math.min(Math.max(possibleCols, 2), 3);
+  }
+
+  return 2;
 }
 
 // Convert API SongLine to component SongLineData
@@ -155,13 +173,16 @@ export function SongDisplayPaged({
 
     const ro = new ResizeObserver(() => {
       const width = el.clientWidth || window.innerWidth;
-      setColumnCount(getColumnCount(width));
+      const height = el.clientHeight || window.innerHeight;
+      setColumnCount(getColumnCount(width, height));
       // Trigger re-measurement when container size changes
       setMeasureKey(k => k + 1);
     });
 
     ro.observe(el);
-    setColumnCount(getColumnCount(el.clientWidth || window.innerWidth));
+    const width = el.clientWidth || window.innerWidth;
+    const height = el.clientHeight || window.innerHeight;
+    setColumnCount(getColumnCount(width, height));
 
     return () => ro.disconnect();
   }, []);
