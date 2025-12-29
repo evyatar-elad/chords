@@ -294,37 +294,52 @@ const Index = () => {
         <div className="container max-w-6xl mx-auto px-3 py-2 landscape:px-1 landscape:py-1">
           {/* Mobile Layout */}
           <div className="md:hidden">
-            {/* Portrait or no song - 2 rows */}
+            {/* Portrait - 3 rows */}
             <div className="portrait:block landscape:hidden">
-              {/* Top row: Back/Logo + Title + Fullscreen */}
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {song ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleBack}
-                      className="text-muted-foreground hover:text-foreground shrink-0 h-8 px-2"
-                    >
-                      חזור
-                    </Button>
-                  ) : (
-                    <div className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 shrink-0">
-                      <Guitar className="w-4 h-4 text-primary" />
-                    </div>
-                  )}
-
-                  <div className="flex-1 min-w-0">
-                    <h1 className="text-base font-bold text-foreground truncate">
-                      {song ? song.title : "האקורדים של אביתר3"}
-                    </h1>
-                    {song && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {song.artist}
-                      </p>
-                    )}
+              {/* Row 1: Back/Logo + Title */}
+              <div className="flex items-center gap-2 mb-1.5">
+                {song ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBack}
+                    className="text-muted-foreground hover:text-foreground shrink-0 h-8 px-2"
+                  >
+                    חזור
+                  </Button>
+                ) : (
+                  <div className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 shrink-0">
+                    <Guitar className="w-4 h-4 text-primary" />
                   </div>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-base font-bold text-foreground truncate">
+                    {song ? song.title : "האקורדים של אביתר3"}
+                  </h1>
+                  {song && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {song.artist}
+                    </p>
+                  )}
                 </div>
+              </div>
+
+              {/* Row 2: Search + Hide/Show + Fullscreen */}
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="flex-1 min-w-0">
+                  <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleHeaderVisibility}
+                  className="shrink-0 h-8 w-8"
+                  title={headerVisible ? "הסתר תפריט" : "הצג תפריט"}
+                >
+                  <ChevronRight className={`h-4 w-4 transition-transform ${headerVisible ? 'rotate-[-90deg]' : 'rotate-90'}`} />
+                </Button>
 
                 <Button
                   variant="ghost"
@@ -337,13 +352,9 @@ const Index = () => {
                 </Button>
               </div>
 
-              {/* Bottom row: Search + Toolbar */}
-              <div className="flex items-center gap-2">
-                <div className="flex-1 min-w-0">
-                  <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
-                </div>
-
-                {song && (
+              {/* Row 3: Toolbar (only when song loaded) */}
+              {song && (
+                <div className="flex items-center justify-center">
                   <FloatingToolbar
                     transposition={transposition}
                     onTranspositionChange={setTransposition}
@@ -351,17 +362,11 @@ const Index = () => {
                     onFontSizeChange={setFontSize}
                     originalTransposition={originalTransposition}
                     onResetToOriginal={handleResetToOriginal}
-                    debug={debugPagination}
-                    onDebugToggle={() => {
-                      setDebugPagination((v) => {
-                        const next = !v;
-                        localStorage.setItem("debugPagination", next ? "1" : "0");
-                        return next;
-                      });
-                    }}
+                    debug={false}
+                    onDebugToggle={() => {}}
                   />
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Landscape - ultra compact single row */}
@@ -378,7 +383,7 @@ const Index = () => {
                 </Button>
               )}
 
-              <div className="flex-1 min-w-0 max-w-[120px]">
+              <div className="flex-1 min-w-0 max-w-[100px]">
                 <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
               </div>
 
@@ -391,17 +396,21 @@ const Index = () => {
                     onFontSizeChange={setFontSize}
                     originalTransposition={originalTransposition}
                     onResetToOriginal={handleResetToOriginal}
-                    debug={debugPagination}
-                    onDebugToggle={() => {
-                      setDebugPagination((v) => {
-                        const next = !v;
-                        localStorage.setItem("debugPagination", next ? "1" : "0");
-                        return next;
-                      });
-                    }}
+                    debug={false}
+                    onDebugToggle={() => {}}
                   />
                 </div>
               )}
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleHeaderVisibility}
+                className="shrink-0 h-6 w-6"
+                title={headerVisible ? "הסתר תפריט" : "הצג תפריט"}
+              >
+                <ChevronRight className={`h-3 w-3 transition-transform ${headerVisible ? 'rotate-[-90deg]' : 'rotate-90'}`} />
+              </Button>
 
               <Button
                 variant="ghost"
@@ -534,18 +543,18 @@ const Index = () => {
         </div>
       )}
 
-      {/* Fixed header toggle at top-left - mobile only */}
-      <div className="md:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={toggleHeaderVisibility}
-          className={`bg-secondary/95 backdrop-blur-sm border border-border rounded-full p-2.5 shadow-lg active:scale-95 transition-all ${
-            headerVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}
-          aria-label={headerVisible ? "הסתר תפריט" : "הצג תפריט"}
-        >
-          <ChevronRight className="h-5 w-5 text-foreground rotate-90" />
-        </button>
-      </div>
+      {/* Fixed header toggle at top-left - only when header is hidden */}
+      {!headerVisible && (
+        <div className="md:hidden fixed top-4 left-4 z-50">
+          <button
+            onClick={toggleHeaderVisibility}
+            className="bg-secondary/95 backdrop-blur-sm border border-border rounded-full p-2.5 shadow-lg active:scale-95 transition-all"
+            aria-label="הצג תפריט"
+          >
+            <ChevronRight className="h-5 w-5 text-foreground rotate-90" />
+          </button>
+        </div>
+      )}
 
       {/* Fixed page indicator - desktop only */}
       {song && totalPages > 1 && (
@@ -576,7 +585,7 @@ const Index = () => {
         ) : (
           <div className="h-[calc(100dvh-var(--header-h,56px))] flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
-              <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-20 md:pb-1 overflow-hidden">
+              <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-20 md:pb-1 landscape:px-1 landscape:pb-1 overflow-hidden">
                 <SongDisplayPaged
                   lines={song.lines}
                   transposition={transposition}
