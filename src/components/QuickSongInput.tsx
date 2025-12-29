@@ -7,9 +7,10 @@ interface QuickSongInputProps {
   onSubmit: (input: string) => void;
   isLoading: boolean;
   loadingMessage?: string;
+  onFocus?: () => void;
 }
 
-export function QuickSongInput({ onSubmit, isLoading, loadingMessage }: QuickSongInputProps) {
+export function QuickSongInput({ onSubmit, isLoading, loadingMessage, onFocus }: QuickSongInputProps) {
   const [input, setInput] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -26,6 +27,7 @@ export function QuickSongInput({ onSubmit, isLoading, loadingMessage }: QuickSon
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
+        onFocus={onFocus}
         placeholder="חפש שיר..."
         className="flex-1 h-8 text-sm text-right bg-secondary/50 border-border/50"
         dir="rtl"

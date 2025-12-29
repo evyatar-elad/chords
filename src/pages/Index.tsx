@@ -159,6 +159,17 @@ const Index = () => {
     }
   };
 
+  // Exit fullscreen when focusing on search (for keyboard access)
+  const handleSearchFocus = async () => {
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch (err) {
+        console.error("Error exiting fullscreen:", err);
+      }
+    }
+  };
+
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -280,7 +291,7 @@ const Index = () => {
           node.closest<HTMLElement>("[dir=rtl]")?.style.setProperty("--header-h", `${h}px`);
         }}
       >
-        <div className="container max-w-6xl mx-auto px-3 py-2">
+        <div className="container max-w-6xl mx-auto px-3 py-2 landscape:px-1 landscape:py-1">
           {/* Mobile Layout */}
           <div className="md:hidden">
             {/* Portrait or no song - 2 rows */}
@@ -329,7 +340,7 @@ const Index = () => {
               {/* Bottom row: Search + Toolbar */}
               <div className="flex items-center gap-2">
                 <div className="flex-1 min-w-0">
-                  <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
+                  <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
                 </div>
 
                 {song && (
@@ -353,8 +364,8 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Landscape - compact single row */}
-            <div className="hidden landscape:flex items-center gap-1">
+            {/* Landscape - ultra compact single row */}
+            <div className="hidden landscape:flex items-center gap-0.5 overflow-hidden">
               {song && (
                 <Button
                   variant="ghost"
@@ -367,27 +378,29 @@ const Index = () => {
                 </Button>
               )}
 
-              <div className="flex-1 min-w-0 max-w-[200px]">
-                <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
+              <div className="flex-1 min-w-0 max-w-[120px]">
+                <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
               </div>
 
               {song && (
-                <FloatingToolbar
-                  transposition={transposition}
-                  onTranspositionChange={setTransposition}
-                  fontSize={fontSize}
-                  onFontSizeChange={setFontSize}
-                  originalTransposition={originalTransposition}
-                  onResetToOriginal={handleResetToOriginal}
-                  debug={debugPagination}
-                  onDebugToggle={() => {
-                    setDebugPagination((v) => {
-                      const next = !v;
-                      localStorage.setItem("debugPagination", next ? "1" : "0");
-                      return next;
-                    });
-                  }}
-                />
+                <div className="shrink-0">
+                  <FloatingToolbar
+                    transposition={transposition}
+                    onTranspositionChange={setTransposition}
+                    fontSize={fontSize}
+                    onFontSizeChange={setFontSize}
+                    originalTransposition={originalTransposition}
+                    onResetToOriginal={handleResetToOriginal}
+                    debug={debugPagination}
+                    onDebugToggle={() => {
+                      setDebugPagination((v) => {
+                        const next = !v;
+                        localStorage.setItem("debugPagination", next ? "1" : "0");
+                        return next;
+                      });
+                    }}
+                  />
+                </div>
               )}
 
               <Button
@@ -492,46 +505,47 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Fixed controls at bottom - mobile only */}
-      {song && (
-        <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 flex items-center justify-between gap-2">
-          {/* Navigation controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1 bg-secondary/95 backdrop-blur-sm border border-border rounded-full px-2 py-1.5 shadow-lg">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={goToPrevPage}
-                disabled={currentPage === 0}
-                className="h-8 w-8"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-mono tabular-nums text-foreground px-2 min-w-[3rem] text-center">
-                {currentPage + 1}/{totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={goToNextPage}
-                disabled={currentPage >= totalPages - 1}
-                className="h-8 w-8"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-
-          {/* Header toggle button */}
-          <button
-            onClick={toggleHeaderVisibility}
-            className="bg-secondary/95 backdrop-blur-sm border border-border rounded-full p-2.5 shadow-lg active:scale-95 transition-transform"
-            aria-label={headerVisible ? "הסתר תפריט" : "הצג תפריט"}
-          >
-            <ChevronRight className={`h-5 w-5 text-foreground transition-transform ${headerVisible ? 'rotate-[-90deg]' : 'rotate-90'}`} />
-          </button>
+      {/* Fixed navigation at bottom-left - mobile only */}
+      {song && totalPages > 1 && (
+        <div className="md:hidden fixed bottom-4 left-4 z-50">
+          <div className="flex items-center gap-1 bg-secondary/95 backdrop-blur-sm border border-border rounded-full px-2 py-1.5 shadow-lg">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goToPrevPage}
+              disabled={currentPage === 0}
+              className="h-8 w-8"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-mono tabular-nums text-foreground px-2 min-w-[3rem] text-center">
+              {currentPage + 1}/{totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goToNextPage}
+              disabled={currentPage >= totalPages - 1}
+              className="h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
+
+      {/* Fixed header toggle at top-left - mobile only */}
+      <div className="md:hidden fixed top-4 left-4 z-50">
+        <button
+          onClick={toggleHeaderVisibility}
+          className={`bg-secondary/95 backdrop-blur-sm border border-border rounded-full p-2.5 shadow-lg active:scale-95 transition-all ${
+            headerVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+          aria-label={headerVisible ? "הסתר תפריט" : "הצג תפריט"}
+        >
+          <ChevronRight className="h-5 w-5 text-foreground rotate-90" />
+        </button>
+      </div>
 
       {/* Fixed page indicator - desktop only */}
       {song && totalPages > 1 && (
@@ -562,7 +576,7 @@ const Index = () => {
         ) : (
           <div className="h-[calc(100dvh-var(--header-h,56px))] flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
-              <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-1 overflow-hidden">
+              <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-20 md:pb-1 overflow-hidden">
                 <SongDisplayPaged
                   lines={song.lines}
                   transposition={transposition}
