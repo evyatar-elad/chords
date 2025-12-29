@@ -202,8 +202,107 @@ const Index = () => {
           node.closest<HTMLElement>("[dir=rtl]")?.style.setProperty("--header-h", `${h}px`);
         }}
       >
-        <div className="container max-w-6xl mx-auto px-4 py-2">
-          <div className="flex items-center gap-3">
+        <div className="container max-w-6xl mx-auto px-3 py-2">
+          {/* Mobile Layout */}
+          <div className="md:hidden">
+            {/* Top row: Back/Logo + Title + Fullscreen */}
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {song ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBack}
+                    className="text-muted-foreground hover:text-foreground shrink-0 h-8 px-2"
+                  >
+                    חזור
+                  </Button>
+                ) : (
+                  <div className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 shrink-0">
+                    <Guitar className="w-4 h-4 text-primary" />
+                  </div>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-base font-bold text-foreground truncate">
+                    {song ? song.title : "האקורדים של אביתר3"}
+                  </h1>
+                  {song && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {song.artist}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className="shrink-0 h-8 w-8"
+                title={isFullscreen ? "צא ממסך מלא" : "מסך מלא"}
+              >
+                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            {/* Bottom row: Search + Navigation + Toolbar */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
+              </div>
+
+              {song && (
+                <>
+                  <FloatingToolbar
+                    transposition={transposition}
+                    onTranspositionChange={setTransposition}
+                    fontSize={fontSize}
+                    onFontSizeChange={setFontSize}
+                    originalTransposition={originalTransposition}
+                    onResetToOriginal={handleResetToOriginal}
+                    debug={debugPagination}
+                    onDebugToggle={() => {
+                      setDebugPagination((v) => {
+                        const next = !v;
+                        localStorage.setItem("debugPagination", next ? "1" : "0");
+                        return next;
+                      });
+                    }}
+                  />
+
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-1 bg-secondary/50 rounded-full px-1.5 py-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={goToPrevPage}
+                        disabled={currentPage === 0}
+                        className="h-6 w-6"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                      <span className="text-[10px] text-muted-foreground px-1 tabular-nums min-w-[2.5rem] text-center">
+                        {currentPage + 1}/{totalPages}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={goToNextPage}
+                        disabled={currentPage >= totalPages - 1}
+                        className="h-6 w-6"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden md:flex items-center gap-3">
             {song ? (
               <Button
                 variant="ghost"
@@ -279,25 +378,23 @@ const Index = () => {
               <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
             </div>
 
-            {song && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleFullscreen}
-                className="shrink-0 h-9 w-9"
-                title={isFullscreen ? "צא ממסך מלא" : "מסך מלא"}
-              >
-                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+              className="shrink-0 h-9 w-9"
+              title={isFullscreen ? "צא ממסך מלא" : "מסך מלא"}
+            >
+              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Fixed page indicator - always visible */}
+      {/* Fixed page indicator - only on desktop */}
       {song && totalPages > 1 && (
         <div
-          className="fixed bottom-4 left-4 z-50 bg-secondary/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5 text-xs font-mono tabular-nums text-muted-foreground pointer-events-none"
+          className="hidden md:block fixed bottom-4 left-4 z-50 bg-secondary/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5 text-xs font-mono tabular-nums text-muted-foreground pointer-events-none"
           style={{ direction: 'ltr' }}
         >
           {currentPage + 1} / {totalPages}
