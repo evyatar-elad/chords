@@ -92,24 +92,28 @@
     gap: 0.75rem;
   }
 
-  /* Desktop: 3 fixed columns */
-  @media (min-width: 900px) {
+  /* Desktop: 3 fixed columns (large screens with normal height) */
+  @media (min-width: 900px) and (min-height: 700px) {
     .song-columns {
       grid-template-columns: repeat(3, 1fr);
       gap: 1.5rem;
     }
   }
 
-  /* Mobile Landscape: 3 columns with tighter spacing */
-  @media (min-width: 600px) and (max-width: 899px) and (orientation: landscape) {
+  /* Mobile Landscape: 3 columns ultra-compact (small height = mobile) */
+  @media (max-height: 700px) and (orientation: landscape) {
     .song-columns {
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 0.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.25rem;
+    }
+
+    .song-col {
+      padding: 0 0.25rem;
     }
   }
 
   /* Mobile Portrait or small screens: single column */
-  @media (max-width: 599px), (orientation: portrait) and (max-width: 899px) {
+  @media (max-width: 599px), (orientation: portrait) and (max-width: 1200px) {
     .song-columns {
       grid-template-columns: 1fr;
       gap: 0;
