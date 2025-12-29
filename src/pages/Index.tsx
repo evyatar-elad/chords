@@ -19,6 +19,7 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [headerVisible, setHeaderVisible] = useState(true);
+  const [headerManuallyHidden, setHeaderManuallyHidden] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [debugPagination, setDebugPagination] = useState(() => {
@@ -148,6 +149,16 @@ const Index = () => {
     }
   };
 
+  // Toggle header visibility manually
+  const toggleHeaderVisibility = () => {
+    setHeaderManuallyHidden(!headerManuallyHidden);
+    if (!headerManuallyHidden) {
+      setHeaderVisible(false);
+    } else {
+      setHeaderVisible(true);
+    }
+  };
+
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -157,9 +168,38 @@ const Index = () => {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // Auto-hide header on scroll
+  // Auto-enter fullscreen on landscape orientation (mobile only)
   useEffect(() => {
-    if (!song) return; // Only when displaying song
+    const handleOrientationChange = async () => {
+      // Only on mobile devices
+      if (window.innerWidth < 900) {
+        const isLandscape = window.innerWidth > window.innerHeight;
+
+        if (isLandscape && !document.fullscreenElement) {
+          try {
+            await document.documentElement.requestFullscreen();
+          } catch (err) {
+            console.error("Auto-fullscreen error:", err);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('resize', handleOrientationChange);
+
+    // Check initial orientation
+    handleOrientationChange();
+
+    return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('resize', handleOrientationChange);
+    };
+  }, []);
+
+  // Auto-hide header on scroll (only if not manually controlled)
+  useEffect(() => {
+    if (!song || headerManuallyHidden) return;
 
     const handleScroll = (e: Event) => {
       const target = e.target as HTMLElement;
@@ -168,29 +208,78 @@ const Index = () => {
       const currentScrollY = target.scrollTop;
 
       if (currentScrollY <= 10) {
-        // At top - always show header
         setHeaderVisible(true);
       } else if (currentScrollY > lastScrollY) {
-        // Scrolling down - hide header
         setHeaderVisible(false);
       } else if (lastScrollY - currentScrollY > 5) {
-        // Scrolling up - show header
         setHeaderVisible(true);
       }
 
       setLastScrollY(currentScrollY);
     };
 
-    // Listen to scroll on main content
     const mainElement = document.querySelector('main');
     if (mainElement) {
       mainElement.addEventListener('scroll', handleScroll, { passive: true });
       return () => mainElement.removeEventListener('scroll', handleScroll);
     }
-  }, [song, lastScrollY]);
+  }, [song, lastScrollY, headerManuallyHidden]);
+
+  // Swipe gestures for page navigation (mobile only)
+  useEffect(() => {
+    if (!song || window.innerWidth >= 900) return;
+
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartX = e.changedTouches[0].screenX;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipe();
+    };
+
+    const handleSwipe = () => {
+      const swipeThreshold = 50;
+      const diff = touchStartX - touchEndX;
+
+      if (Math.abs(diff) > swipeThreshold) {
+        if (diff > 0) {
+          // Swiped left (next page in RTL)
+          goToPrevPage();
+        } else {
+          // Swiped right (previous page in RTL)
+          goToNextPage();
+        }
+      }
+    };
+
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+      mainElement.addEventListener('touchend', handleTouchEnd, { passive: true });
+      return () => {
+        mainElement.removeEventListener('touchstart', handleTouchStart);
+        mainElement.removeEventListener('touchend', handleTouchEnd);
+      };
+    }
+  }, [song, goToNextPage, goToPrevPage]);
 
   return (
     <div className="min-h-screen bg-gradient-dark" dir="rtl">
+      {/* Header toggle button - only when song is showing and header is hidden */}
+      {song && !headerVisible && (
+        <button
+          onClick={toggleHeaderVisibility}
+          className="fixed top-2 right-2 z-50 md:hidden bg-secondary/90 backdrop-blur-sm border border-border rounded-full p-2 shadow-lg active:scale-95 transition-transform"
+          aria-label="הצג תפריט"
+        >
+          <ChevronRight className="h-5 w-5 text-foreground rotate-90" />
+        </button>
+      )}
+
       {/* Header with auto-hide */}
       <header
         className={`fixed top-0 left-0 right-0 z-40 glass transition-transform duration-300 ${
@@ -205,49 +294,130 @@ const Index = () => {
         <div className="container max-w-6xl mx-auto px-3 py-2">
           {/* Mobile Layout */}
           <div className="md:hidden">
-            {/* Top row: Back/Logo + Title + Fullscreen */}
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                {song ? (
+            {/* Portrait or no song - 2 rows */}
+            <div className="portrait:block landscape:hidden">
+              {/* Top row: Back/Logo + Title + Fullscreen */}
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {song ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleBack}
+                      className="text-muted-foreground hover:text-foreground shrink-0 h-8 px-2"
+                    >
+                      חזור
+                    </Button>
+                  ) : (
+                    <div className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 shrink-0">
+                      <Guitar className="w-4 h-4 text-primary" />
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-base font-bold text-foreground truncate">
+                      {song ? song.title : "האקורדים של אביתר3"}
+                    </h1>
+                    {song && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {song.artist}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleFullscreen}
+                  className="shrink-0 h-8 w-8"
+                  title={isFullscreen ? "צא ממסך מלא" : "מסך מלא"}
+                >
+                  {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                </Button>
+
+                {song && (
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={handleBack}
-                    className="text-muted-foreground hover:text-foreground shrink-0 h-8 px-2"
+                    size="icon"
+                    onClick={toggleHeaderVisibility}
+                    className="shrink-0 h-8 w-8"
+                    title="הסתר תפריט"
                   >
-                    חזור
+                    <ChevronRight className="h-4 w-4 rotate-[-90deg]" />
                   </Button>
-                ) : (
-                  <div className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 shrink-0">
-                    <Guitar className="w-4 h-4 text-primary" />
-                  </div>
                 )}
-
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-base font-bold text-foreground truncate">
-                    {song ? song.title : "האקורדים של אביתר3"}
-                  </h1>
-                  {song && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      {song.artist}
-                    </p>
-                  )}
-                </div>
               </div>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleFullscreen}
-                className="shrink-0 h-8 w-8"
-                title={isFullscreen ? "צא ממסך מלא" : "מסך מלא"}
-              >
-                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-              </Button>
+              {/* Bottom row: Search + Navigation + Toolbar */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
+                </div>
+
+                {song && (
+                  <>
+                    <FloatingToolbar
+                      transposition={transposition}
+                      onTranspositionChange={setTransposition}
+                      fontSize={fontSize}
+                      onFontSizeChange={setFontSize}
+                      originalTransposition={originalTransposition}
+                      onResetToOriginal={handleResetToOriginal}
+                      debug={debugPagination}
+                      onDebugToggle={() => {
+                        setDebugPagination((v) => {
+                          const next = !v;
+                          localStorage.setItem("debugPagination", next ? "1" : "0");
+                          return next;
+                        });
+                      }}
+                    />
+
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-1 bg-secondary/50 rounded-full px-1.5 py-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={goToPrevPage}
+                          disabled={currentPage === 0}
+                          className="h-6 w-6"
+                        >
+                          <ChevronRight className="h-3 w-3" />
+                        </Button>
+                        <span className="text-[10px] text-muted-foreground px-1 tabular-nums min-w-[2.5rem] text-center">
+                          {currentPage + 1}/{totalPages}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={goToNextPage}
+                          disabled={currentPage >= totalPages - 1}
+                          className="h-6 w-6"
+                        >
+                          <ChevronLeft className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Bottom row: Search + Navigation + Toolbar */}
-            <div className="flex items-center gap-2">
+            {/* Landscape - compact single row */}
+            <div className="hidden landscape:flex items-center gap-1.5">
+              {song && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleBack}
+                  className="shrink-0 h-7 w-7"
+                  title="חזור"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
+
               <div className="flex-1 min-w-0">
                 <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
               </div>
@@ -272,7 +442,7 @@ const Index = () => {
                   />
 
                   {totalPages > 1 && (
-                    <div className="flex items-center gap-1 bg-secondary/50 rounded-full px-1.5 py-1 shrink-0">
+                    <div className="flex items-center gap-0.5 bg-secondary/50 rounded-full px-1 py-0.5 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -282,7 +452,7 @@ const Index = () => {
                       >
                         <ChevronRight className="h-3 w-3" />
                       </Button>
-                      <span className="text-[10px] text-muted-foreground px-1 tabular-nums min-w-[2.5rem] text-center">
+                      <span className="text-[9px] text-muted-foreground px-0.5 tabular-nums">
                         {currentPage + 1}/{totalPages}
                       </span>
                       <Button
@@ -296,6 +466,16 @@ const Index = () => {
                       </Button>
                     </div>
                   )}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleHeaderVisibility}
+                    className="shrink-0 h-7 w-7"
+                    title="הסתר תפריט"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5 rotate-[-90deg]" />
+                  </Button>
                 </>
               )}
             </div>

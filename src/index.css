@@ -46,6 +46,11 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
+    /* Safe area support for mobile devices (notches, nav bars, etc) */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   ::-webkit-scrollbar {
