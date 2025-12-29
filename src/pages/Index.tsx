@@ -482,6 +482,18 @@ const Index = () => {
                   >
                     <span className="text-xs">A-</span>
                   </Button>
+
+                  {transposition !== originalTransposition && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetToOriginal}
+                      className="shrink-0 h-6 px-1.5 text-[10px]"
+                      title="אפס לסולם המקורי"
+                    >
+                      גרסה קלה
+                    </Button>
+                  )}
                 </>
               )}
 
