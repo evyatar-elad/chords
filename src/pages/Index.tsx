@@ -413,7 +413,7 @@ const Index = () => {
                   <span className="text-[8px] text-primary font-bold px-1">v4</span>
                 )}
 
-                <div className="flex-1 min-w-0 w-[120px]">
+                <div className="min-w-0 w-[250px]">
                   <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
                 </div>
 
@@ -624,7 +624,7 @@ const Index = () => {
 
       {/* Fixed header toggle at top-left - only when header is hidden */}
       {!headerVisible && (
-        <div className="md:hidden fixed top-4 left-4 z-50">
+        <div className="max-h-[700px]:block min-h-[701px]:hidden fixed top-4 left-4 z-[9999]">
           <button
             onClick={toggleHeaderVisibility}
             className="bg-secondary/95 backdrop-blur-sm border border-border rounded-full p-2.5 shadow-lg active:scale-95 transition-all"
