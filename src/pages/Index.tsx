@@ -315,7 +315,7 @@ const Index = () => {
 
                 <div className="flex-1 min-w-0">
                   <h1 className="text-base font-bold text-foreground truncate">
-                    {song ? song.title : "האקורדים של אביתר3"}
+                    {song ? song.title : "האקורדים של אביתר4"}
                   </h1>
                   {song && (
                     <p className="text-xs text-muted-foreground truncate">
@@ -419,7 +419,7 @@ const Index = () => {
               )}
             </div>
 
-            {/* Landscape - ultra compact single row */}
+            {/* Landscape - ultra compact single row [UPDATED-v4] */}
             <div className="hidden landscape:flex items-center gap-0.5">
               {song && (
                 <Button
@@ -538,7 +538,7 @@ const Index = () => {
 
             <div className="flex-1 min-w-0 text-center">
               <h1 className="text-lg font-bold text-foreground truncate">
-                {song ? song.title : "האקורדים של אביתר3"}
+                {song ? song.title : "האקורדים של אביתר4"}
               </h1>
               <p className="text-sm text-muted-foreground truncate">
                 {song ? song.artist : "שירים בגרסאות קלות ועוד"}
