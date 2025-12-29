@@ -265,8 +265,8 @@ const Index = () => {
         }}
       >
         <div className="container max-w-6xl mx-auto px-3 py-2 landscape:px-1 landscape:py-1">
-          {/* Mobile Layout */}
-          <div className="md:hidden">
+          {/* Mobile Layout - show on small screens OR small height (landscape mobile) */}
+          <div className="max-md:block md:max-h-[700px]:block md:min-h-[701px]:hidden">
             {/* Portrait - 3 rows */}
             <div className="portrait:block landscape:hidden">
               {/* Row 1: Back/Logo + Title */}
@@ -395,15 +395,18 @@ const Index = () => {
             {/* Landscape - ultra compact single row [UPDATED-v4] */}
             <div className="hidden landscape:flex items-center gap-0.5">
               {song ? (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleBack}
-                  className="shrink-0 h-6 w-6"
-                  title="חזור"
-                >
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBack}
+                    className="shrink-0 h-6 w-6"
+                    title="חזור [v4]"
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                  </Button>
+                  <span className="text-[8px] text-primary/60 font-bold">v4</span>
+                </>
               ) : (
                 <span className="text-[8px] text-primary font-bold px-1">v4</span>
               )}
@@ -494,8 +497,8 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Desktop Layout */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* Desktop Layout - hide on small height (mobile landscape) */}
+          <div className="hidden md:block md:max-h-[700px]:hidden md:min-h-[701px]:flex items-center gap-3">
             {song ? (
               <Button
                 variant="ghost"
