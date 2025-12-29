@@ -390,8 +390,8 @@ const Index = () => {
               )}
             </div>
 
-            {/* Landscape - organized row */}
-            <div className="hidden landscape:flex items-center gap-1">
+            {/* Landscape - organized row (mobile only: height <= 700px) */}
+            <div className="hidden landscape:max-h-[700px]:flex items-center gap-1">
               {/* Right side (RTL start): Back + Controls OR empty when no song */}
               <div className="flex items-center gap-1">
                 {song && (
