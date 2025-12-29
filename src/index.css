@@ -89,20 +89,22 @@
     display: grid;
     height: 100%;
     overflow: hidden;
-    gap: 1.5rem;
+    gap: 0.75rem;
   }
 
   /* Desktop: 3 fixed columns */
   @media (min-width: 900px) {
     .song-columns {
       grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
     }
   }
 
-  /* Mobile Landscape: dynamic 2-3 columns based on space */
+  /* Mobile Landscape: 3 columns with tighter spacing */
   @media (min-width: 600px) and (max-width: 899px) and (orientation: landscape) {
     .song-columns {
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.5rem;
     }
   }
 
@@ -110,6 +112,7 @@
   @media (max-width: 599px), (orientation: portrait) and (max-width: 899px) {
     .song-columns {
       grid-template-columns: 1fr;
+      gap: 0;
     }
   }
 
@@ -117,7 +120,7 @@
     min-width: 0;
     height: 100%;
     max-height: 100%;
-    padding: 0 0.75rem;
+    padding: 0 0.5rem;
     overflow: hidden;
   }
 
