@@ -288,7 +288,7 @@ const Index = () => {
 
                 <div className="flex-1 min-w-0">
                   <h1 className="text-base font-bold text-foreground truncate">
-                    {song ? song.title : "האקורדים של אביתר4"}
+                    {song ? song.title : "האקורדים של אביתר"}
                   </h1>
                   {song && (
                     <p className="text-xs text-muted-foreground truncate">
@@ -390,9 +390,9 @@ const Index = () => {
               )}
             </div>
 
-            {/* Landscape - organized row [UPDATED-v4] */}
+            {/* Landscape - organized row */}
             <div className="hidden landscape:flex items-center gap-1">
-              {/* Right side (RTL start): Back + v4 + Controls */}
+              {/* Right side (RTL start): Back + Controls OR empty when no song */}
               <div className="flex items-center gap-1">
                 {song && (
                   <>
@@ -401,20 +401,11 @@ const Index = () => {
                       size="icon"
                       onClick={handleBack}
                       className="shrink-0 h-6 w-6"
-                      title="חזור [v4]"
+                      title="חזור"
                     >
                       <ChevronRight className="h-3 w-3" />
                     </Button>
-                    <span className="text-[8px] text-primary/60 font-bold">v4</span>
-                  </>
-                )}
 
-                {!song && (
-                  <span className="text-[8px] text-primary font-bold px-1">v4</span>
-                )}
-
-                {song && (
-                  <>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -533,7 +524,7 @@ const Index = () => {
 
             <div className="flex-1 min-w-0 text-center">
               <h1 className="text-lg font-bold text-foreground truncate">
-                {song ? song.title : "האקורדים של אביתר4"}
+                {song ? song.title : "האקורדים של אביתר"}
               </h1>
               <p className="text-sm text-muted-foreground truncate">
                 {song ? song.artist : "שירים בגרסאות קלות ועוד"}
@@ -665,7 +656,7 @@ const Index = () => {
                 <Guitar className="w-10 h-10 text-primary" />
               </div>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-                האקורדים של אביתר4
+                האקורדים של אביתר
               </h2>
               <p className="text-lg text-muted-foreground max-w-md mx-auto">
                 שירים בגרסאות קלות ועוד
