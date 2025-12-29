@@ -269,17 +269,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-dark" dir="rtl">
-      {/* Header toggle button - only when song is showing and header is hidden */}
-      {song && !headerVisible && (
-        <button
-          onClick={toggleHeaderVisibility}
-          className="fixed top-2 right-2 z-50 md:hidden bg-secondary/90 backdrop-blur-sm border border-border rounded-full p-2 shadow-lg active:scale-95 transition-transform"
-          aria-label="הצג תפריט"
-        >
-          <ChevronRight className="h-5 w-5 text-foreground rotate-90" />
-        </button>
-      )}
-
       {/* Header with auto-hide */}
       <header
         className={`fixed top-0 left-0 right-0 z-40 glass transition-transform duration-300 ${
@@ -287,7 +276,7 @@ const Index = () => {
         }`}
         ref={(node) => {
           if (!node) return;
-          const h = node.offsetHeight || 56;
+          const h = headerVisible ? (node.offsetHeight || 56) : 0;
           node.closest<HTMLElement>("[dir=rtl]")?.style.setProperty("--header-h", `${h}px`);
         }}
       >
@@ -335,95 +324,15 @@ const Index = () => {
                 >
                   {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                 </Button>
-
-                {song && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleHeaderVisibility}
-                    className="shrink-0 h-8 w-8"
-                    title="הסתר תפריט"
-                  >
-                    <ChevronRight className="h-4 w-4 rotate-[-90deg]" />
-                  </Button>
-                )}
               </div>
 
-              {/* Bottom row: Search + Navigation + Toolbar */}
+              {/* Bottom row: Search + Toolbar */}
               <div className="flex items-center gap-2">
                 <div className="flex-1 min-w-0">
                   <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
                 </div>
 
                 {song && (
-                  <>
-                    <FloatingToolbar
-                      transposition={transposition}
-                      onTranspositionChange={setTransposition}
-                      fontSize={fontSize}
-                      onFontSizeChange={setFontSize}
-                      originalTransposition={originalTransposition}
-                      onResetToOriginal={handleResetToOriginal}
-                      debug={debugPagination}
-                      onDebugToggle={() => {
-                        setDebugPagination((v) => {
-                          const next = !v;
-                          localStorage.setItem("debugPagination", next ? "1" : "0");
-                          return next;
-                        });
-                      }}
-                    />
-
-                    {totalPages > 1 && (
-                      <div className="flex items-center gap-1 bg-secondary/50 rounded-full px-1.5 py-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={goToPrevPage}
-                          disabled={currentPage === 0}
-                          className="h-6 w-6"
-                        >
-                          <ChevronRight className="h-3 w-3" />
-                        </Button>
-                        <span className="text-[10px] text-muted-foreground px-1 tabular-nums min-w-[2.5rem] text-center">
-                          {currentPage + 1}/{totalPages}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={goToNextPage}
-                          disabled={currentPage >= totalPages - 1}
-                          className="h-6 w-6"
-                        >
-                          <ChevronLeft className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Landscape - compact single row */}
-            <div className="hidden landscape:flex items-center gap-1.5">
-              {song && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleBack}
-                  className="shrink-0 h-7 w-7"
-                  title="חזור"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              )}
-
-              <div className="flex-1 min-w-0">
-                <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
-              </div>
-
-              {song && (
-                <>
                   <FloatingToolbar
                     transposition={transposition}
                     onTranspositionChange={setTransposition}
@@ -440,44 +349,56 @@ const Index = () => {
                       });
                     }}
                   />
+                )}
+              </div>
+            </div>
 
-                  {totalPages > 1 && (
-                    <div className="flex items-center gap-0.5 bg-secondary/50 rounded-full px-1 py-0.5 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={goToPrevPage}
-                        disabled={currentPage === 0}
-                        className="h-6 w-6"
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                      </Button>
-                      <span className="text-[9px] text-muted-foreground px-0.5 tabular-nums">
-                        {currentPage + 1}/{totalPages}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={goToNextPage}
-                        disabled={currentPage >= totalPages - 1}
-                        className="h-6 w-6"
-                      >
-                        <ChevronLeft className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleHeaderVisibility}
-                    className="shrink-0 h-7 w-7"
-                    title="הסתר תפריט"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5 rotate-[-90deg]" />
-                  </Button>
-                </>
+            {/* Landscape - compact single row */}
+            <div className="hidden landscape:flex items-center gap-1">
+              {song && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleBack}
+                  className="shrink-0 h-6 w-6"
+                  title="חזור"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </Button>
               )}
+
+              <div className="flex-1 min-w-0 max-w-[200px]">
+                <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
+              </div>
+
+              {song && (
+                <FloatingToolbar
+                  transposition={transposition}
+                  onTranspositionChange={setTransposition}
+                  fontSize={fontSize}
+                  onFontSizeChange={setFontSize}
+                  originalTransposition={originalTransposition}
+                  onResetToOriginal={handleResetToOriginal}
+                  debug={debugPagination}
+                  onDebugToggle={() => {
+                    setDebugPagination((v) => {
+                      const next = !v;
+                      localStorage.setItem("debugPagination", next ? "1" : "0");
+                      return next;
+                    });
+                  }}
+                />
+              )}
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className="shrink-0 h-6 w-6"
+                title={isFullscreen ? "צא ממסך מלא" : "מסך מלא"}
+              >
+                {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
+              </Button>
             </div>
           </div>
 
@@ -571,7 +492,48 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Fixed page indicator - only on desktop */}
+      {/* Fixed controls at bottom - mobile only */}
+      {song && (
+        <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 flex items-center justify-between gap-2">
+          {/* Navigation controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1 bg-secondary/95 backdrop-blur-sm border border-border rounded-full px-2 py-1.5 shadow-lg">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={goToPrevPage}
+                disabled={currentPage === 0}
+                className="h-8 w-8"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-mono tabular-nums text-foreground px-2 min-w-[3rem] text-center">
+                {currentPage + 1}/{totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={goToNextPage}
+                disabled={currentPage >= totalPages - 1}
+                className="h-8 w-8"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Header toggle button */}
+          <button
+            onClick={toggleHeaderVisibility}
+            className="bg-secondary/95 backdrop-blur-sm border border-border rounded-full p-2.5 shadow-lg active:scale-95 transition-transform"
+            aria-label={headerVisible ? "הסתר תפריט" : "הצג תפריט"}
+          >
+            <ChevronRight className={`h-5 w-5 text-foreground transition-transform ${headerVisible ? 'rotate-[-90deg]' : 'rotate-90'}`} />
+          </button>
+        </div>
+      )}
+
+      {/* Fixed page indicator - desktop only */}
       {song && totalPages > 1 && (
         <div
           className="hidden md:block fixed bottom-4 left-4 z-50 bg-secondary/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5 text-xs font-mono tabular-nums text-muted-foreground pointer-events-none"
@@ -582,7 +544,7 @@ const Index = () => {
       )}
 
       {/* Main content */}
-      <main className="min-h-screen pt-[var(--header-h,56px)]"> 
+      <main className="min-h-screen transition-[padding-top] duration-300" style={{ paddingTop: `var(--header-h, 56px)` }}> 
         {!song ? (
           <div className="min-h-[calc(100dvh-var(--header-h,56px))] flex flex-col items-center justify-center px-4 py-12">
             <div className="text-center mb-12">
