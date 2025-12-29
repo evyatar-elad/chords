@@ -179,34 +179,7 @@ const Index = () => {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // Auto-enter fullscreen on landscape orientation (mobile only)
-  useEffect(() => {
-    const handleOrientationChange = async () => {
-      // Only on mobile devices
-      if (window.innerWidth < 900) {
-        const isLandscape = window.innerWidth > window.innerHeight;
-
-        if (isLandscape && !document.fullscreenElement) {
-          try {
-            await document.documentElement.requestFullscreen();
-          } catch (err) {
-            console.error("Auto-fullscreen error:", err);
-          }
-        }
-      }
-    };
-
-    window.addEventListener('orientationchange', handleOrientationChange);
-    window.addEventListener('resize', handleOrientationChange);
-
-    // Check initial orientation
-    handleOrientationChange();
-
-    return () => {
-      window.removeEventListener('orientationchange', handleOrientationChange);
-      window.removeEventListener('resize', handleOrientationChange);
-    };
-  }, []);
+  // Auto-fullscreen removed - user preference
 
   // Auto-hide header on scroll (only if not manually controlled)
   useEffect(() => {
@@ -421,7 +394,7 @@ const Index = () => {
 
             {/* Landscape - ultra compact single row [UPDATED-v4] */}
             <div className="hidden landscape:flex items-center gap-0.5">
-              {song && (
+              {song ? (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -431,6 +404,8 @@ const Index = () => {
                 >
                   <ChevronRight className="h-3 w-3" />
                 </Button>
+              ) : (
+                <span className="text-[8px] text-primary font-bold px-1">v4</span>
               )}
 
               <div className="flex-1 min-w-0 max-w-[80px]">
@@ -670,7 +645,7 @@ const Index = () => {
                 <Guitar className="w-10 h-10 text-primary" />
               </div>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-                האקורדים של אביתר3
+                האקורדים של אביתר4
               </h2>
               <p className="text-lg text-muted-foreground max-w-md mx-auto">
                 שירים בגרסאות קלות ועוד
