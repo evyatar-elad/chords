@@ -42,6 +42,36 @@ export interface ScrapeSongResponse {
   error?: string;
 }
 
+export interface SearchSongResponse {
+  url?: string;
+  error?: string;
+  message?: string;
+}
+
+/**
+ * Search for a song on tab4u.com
+ * @param query - The search query text
+ */
+export async function searchSong(query: string): Promise<SearchSongResponse> {
+  try {
+    const { data, error } = await supabase.functions.invoke('search-song', {
+      body: { query },
+    });
+
+    if (error) {
+      console.error('Error calling search-song function:', error);
+      return { error: error.message };
+    }
+
+    return data as SearchSongResponse;
+  } catch (err) {
+    console.error('Error searching song:', err);
+    return {
+      error: err instanceof Error ? err.message : 'Unknown error occurred'
+    };
+  }
+}
+
 /**
  * Scrape a song from tab4u.com
  * @param url - The URL of the song page on tab4u.com
@@ -60,9 +90,9 @@ export async function scrapeSong(url: string): Promise<ScrapeSongResponse> {
     return data as ScrapeSongResponse;
   } catch (err) {
     console.error('Error scraping song:', err);
-    return { 
-      success: false, 
-      error: err instanceof Error ? err.message : 'Unknown error occurred' 
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Unknown error occurred'
     };
   }
 }
