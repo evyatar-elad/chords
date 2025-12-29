@@ -265,8 +265,8 @@ const Index = () => {
         }}
       >
         <div className="container max-w-6xl mx-auto px-3 py-2 landscape:px-1 landscape:py-1">
-          {/* Mobile Layout - show on small screens OR small height (landscape mobile) */}
-          <div className="max-md:block md:max-h-[700px]:block md:min-h-[701px]:hidden">
+          {/* Mobile Layout - show on portrait OR landscape with small height */}
+          <div className="portrait:block landscape:max-h-[700px]:block landscape:min-h-[701px]:hidden">
             {/* Portrait - 3 rows */}
             <div className="portrait:block landscape:hidden">
               {/* Row 1: Back/Logo + Title */}
@@ -497,8 +497,8 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Desktop Layout - hide on small height (mobile landscape) */}
-          <div className="hidden md:block md:max-h-[700px]:hidden md:min-h-[701px]:flex items-center gap-3">
+          {/* Desktop Layout - show only on landscape with large height */}
+          <div className="hidden landscape:min-h-[701px]:flex items-center gap-3">
             {song ? (
               <Button
                 variant="ghost"
