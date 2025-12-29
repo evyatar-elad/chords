@@ -15,7 +15,7 @@ const Index = () => {
   const [loadingMessage, setLoadingMessage] = useState<string>("");
   const [transposition, setTransposition] = useState(0);
   const [originalTransposition, setOriginalTransposition] = useState(0);
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(14); // Smaller initial size for mobile columns
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -374,29 +374,27 @@ const Index = () => {
                     <span className="text-xs">A-</span>
                   </Button>
 
-                  {transposition !== originalTransposition && (
-                    <>
-                      <div className="w-px h-5 bg-border mx-1" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleResetToOriginal}
-                        className="shrink-0 h-7 px-2 text-xs"
-                        title="אפס לסולם המקורי"
-                      >
-                        גרסה קלה
-                      </Button>
-                    </>
-                  )}
+                  <div className="w-px h-5 bg-border mx-1" />
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetToOriginal}
+                    disabled={transposition === originalTransposition}
+                    className="shrink-0 h-7 px-2 text-xs"
+                    title={transposition === originalTransposition ? "כבר בגרסה קלה" : "אפס לסולם המקורי"}
+                  >
+                    גרסה קלה
+                  </Button>
                 </div>
               )}
             </div>
 
             {/* Landscape - organized row [UPDATED-v4] */}
-            <div className="hidden landscape:flex items-center gap-1 justify-between">
-              {/* Right side (RTL start): Back + v4 + Search + Controls */}
+            <div className="hidden landscape:flex items-center gap-1">
+              {/* Right side (RTL start): Back + v4 + Controls */}
               <div className="flex items-center gap-1">
-                {song ? (
+                {song && (
                   <>
                     <Button
                       variant="ghost"
@@ -409,13 +407,11 @@ const Index = () => {
                     </Button>
                     <span className="text-[8px] text-primary/60 font-bold">v4</span>
                   </>
-                ) : (
-                  <span className="text-[8px] text-primary font-bold px-1">v4</span>
                 )}
 
-                <div className="min-w-0 w-[250px]">
-                  <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
-                </div>
+                {!song && (
+                  <span className="text-[8px] text-primary font-bold px-1">v4</span>
+                )}
 
                 {song && (
                   <>
@@ -463,23 +459,38 @@ const Index = () => {
                       <span className="text-xs">A-</span>
                     </Button>
 
-                    {transposition !== originalTransposition && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleResetToOriginal}
-                        className="shrink-0 h-6 px-1.5 text-[10px]"
-                        title="אפס לסולם המקורי"
-                      >
-                        גרסה קלה
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetToOriginal}
+                      disabled={transposition === originalTransposition}
+                      className="shrink-0 h-6 px-1.5 text-[10px]"
+                      title={transposition === originalTransposition ? "כבר בגרסה קלה" : "אפס לסולם המקורי"}
+                    >
+                      גרסה קלה
+                    </Button>
                   </>
                 )}
               </div>
 
-              {/* Left side (RTL end): Hide/Show + Fullscreen */}
+              {/* Center: Song name and artist */}
+              {song && (
+                <div className="flex-1 min-w-0 text-center px-2">
+                  <div className="text-xs font-bold text-foreground truncate">
+                    {song.title}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground truncate">
+                    {song.artist}
+                  </div>
+                </div>
+              )}
+
+              {/* Left side (RTL end): Search + Hide/Show + Fullscreen */}
               <div className="flex items-center gap-1">
+                <div className="min-w-0 w-[200px]">
+                  <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
+                </div>
+
                 <Button
                   variant="ghost"
                   size="icon"
@@ -664,7 +675,7 @@ const Index = () => {
         ) : (
           <div className="h-[calc(100dvh-var(--header-h,56px))] flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
-              <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-20 md:pb-1 landscape:px-0.5 landscape:pb-1 overflow-hidden">
+              <div className="h-full container max-w-6xl mx-auto px-4 pt-4 pb-20 md:pb-1 landscape:px-0.5 landscape:pt-2 landscape:pb-1 overflow-hidden">
                 <SongDisplayPaged
                   lines={song.lines}
                   transposition={transposition}
