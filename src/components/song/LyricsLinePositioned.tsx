@@ -22,8 +22,6 @@ function normalizeChordTokens(chordLabel: string): string[] {
   const raw = (chordLabel ?? "").trim();
   if (!raw) return [];
 
-  console.log('[normalizeChordTokens] Input:', raw);
-
   const tokens: string[] = [];
   let current = "";
   let i = 0;
@@ -84,7 +82,6 @@ function normalizeChordTokens(chordLabel: string): string[] {
     tokens.push(current);
   }
 
-  console.log('[normalizeChordTokens] Output:', tokens);
   return tokens;
 }
 
