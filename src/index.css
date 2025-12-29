@@ -69,7 +69,7 @@
 
 @layer utilities {
   /* ===== SONG DISPLAY ===== */
-  
+
   .song-container {
     font-family: var(--font-hebrew);
     direction: rtl;
@@ -81,14 +81,34 @@
   }
 
   .song-columns {
-    display: flex;
-    flex-direction: row;
+    display: grid;
     height: 100%;
     overflow: hidden;
+    gap: 1.5rem;
+  }
+
+  /* Desktop: 3 fixed columns */
+  @media (min-width: 900px) {
+    .song-columns {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* Mobile Landscape: dynamic 2-3 columns based on space */
+  @media (min-width: 600px) and (max-width: 899px) and (orientation: landscape) {
+    .song-columns {
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+  }
+
+  /* Mobile Portrait or small screens: single column */
+  @media (max-width: 599px), (orientation: portrait) and (max-width: 899px) {
+    .song-columns {
+      grid-template-columns: 1fr;
+    }
   }
 
   .song-col {
-    flex: 1;
     min-width: 0;
     height: 100%;
     max-height: 100%;

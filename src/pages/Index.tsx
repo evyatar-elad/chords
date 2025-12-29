@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Guitar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Guitar, ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
 import { SongInput } from "@/components/SongInput";
 import { SongDisplayPaged } from "@/components/SongDisplayPaged";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
@@ -18,6 +18,9 @@ const Index = () => {
   const [fontSize, setFontSize] = useState(16);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [debugPagination, setDebugPagination] = useState(() => {
     const fromQuery = new URLSearchParams(window.location.search).get("debug");
     if (fromQuery === "1") return true;
@@ -130,11 +133,69 @@ const Index = () => {
     setTransposition(originalTransposition);
   };
 
+  // Fullscreen toggle
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.error("Fullscreen error:", err);
+    }
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // Auto-hide header on scroll
+  useEffect(() => {
+    if (!song) return; // Only when displaying song
+
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (!target || target.scrollTop === undefined) return;
+
+      const currentScrollY = target.scrollTop;
+
+      if (currentScrollY <= 10) {
+        // At top - always show header
+        setHeaderVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        // Scrolling down - hide header
+        setHeaderVisible(false);
+      } else if (lastScrollY - currentScrollY > 5) {
+        // Scrolling up - show header
+        setHeaderVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    // Listen to scroll on main content
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.addEventListener('scroll', handleScroll, { passive: true });
+      return () => mainElement.removeEventListener('scroll', handleScroll);
+    }
+  }, [song, lastScrollY]);
+
   return (
     <div className="min-h-screen bg-gradient-dark" dir="rtl">
-      {/* Header always visible */}
+      {/* Header with auto-hide */}
       <header
-        className="sticky top-0 z-40 glass"
+        className={`fixed top-0 left-0 right-0 z-40 glass transition-transform duration-300 ${
+          headerVisible ? 'translate-y-0' : '-translate-y-full'
+        }`}
         ref={(node) => {
           if (!node) return;
           const h = node.offsetHeight || 56;
@@ -217,12 +278,34 @@ const Index = () => {
             <div className="shrink-0">
               <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
             </div>
+
+            {song && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className="shrink-0 h-9 w-9"
+                title={isFullscreen ? "צא ממסך מלא" : "מסך מלא"}
+              >
+                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+              </Button>
+            )}
           </div>
         </div>
       </header>
 
+      {/* Fixed page indicator - always visible */}
+      {song && totalPages > 1 && (
+        <div
+          className="fixed bottom-4 left-4 z-50 bg-secondary/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5 text-xs font-mono tabular-nums text-muted-foreground pointer-events-none"
+          style={{ direction: 'ltr' }}
+        >
+          {currentPage + 1} / {totalPages}
+        </div>
+      )}
+
       {/* Main content */}
-      <main className="min-h-[calc(100dvh-var(--header-h,56px))]"> 
+      <main className="min-h-screen pt-[var(--header-h,56px)]"> 
         {!song ? (
           <div className="min-h-[calc(100dvh-var(--header-h,56px))] flex flex-col items-center justify-center px-4 py-12">
             <div className="text-center mb-12">
