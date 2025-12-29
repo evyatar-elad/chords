@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Guitar, ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
+import { Guitar, ChevronLeft, ChevronRight, Maximize, Minimize, ChevronUp, ChevronDown } from "lucide-react";
 import { SongInput } from "@/components/SongInput";
 import { SongDisplayPaged } from "@/components/SongDisplayPaged";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
@@ -370,7 +370,7 @@ const Index = () => {
             </div>
 
             {/* Landscape - ultra compact single row */}
-            <div className="hidden landscape:flex items-center gap-0.5 overflow-hidden">
+            <div className="hidden landscape:flex items-center gap-0.5">
               {song && (
                 <Button
                   variant="ghost"
@@ -383,23 +383,56 @@ const Index = () => {
                 </Button>
               )}
 
-              <div className="flex-1 min-w-0 max-w-[100px]">
+              <div className="flex-1 min-w-0 max-w-[80px]">
                 <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
               </div>
 
               {song && (
-                <div className="shrink-0">
-                  <FloatingToolbar
-                    transposition={transposition}
-                    onTranspositionChange={setTransposition}
-                    fontSize={fontSize}
-                    onFontSizeChange={setFontSize}
-                    originalTransposition={originalTransposition}
-                    onResetToOriginal={handleResetToOriginal}
-                    debug={false}
-                    onDebugToggle={() => {}}
-                  />
-                </div>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setTransposition(transposition + 1)}
+                    className="shrink-0 h-6 w-6"
+                    title="העלה טון"
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </Button>
+
+                  <span className="text-xs font-mono tabular-nums text-foreground px-1 min-w-[1.5rem] text-center">
+                    {transposition > 0 ? `+${transposition}` : transposition}
+                  </span>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setTransposition(transposition - 1)}
+                    className="shrink-0 h-6 w-6"
+                    title="הורד טון"
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setFontSize(fontSize + 1)}
+                    className="shrink-0 h-6 w-6"
+                    title="הגדל טקסט"
+                  >
+                    <span className="text-xs font-bold">A+</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setFontSize(fontSize - 1)}
+                    className="shrink-0 h-6 w-6"
+                    title="הקטן טקסט"
+                  >
+                    <span className="text-xs">A-</span>
+                  </Button>
+                </>
               )}
 
               <Button
@@ -585,7 +618,7 @@ const Index = () => {
         ) : (
           <div className="h-[calc(100dvh-var(--header-h,56px))] flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
-              <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-20 md:pb-1 landscape:px-1 landscape:pb-1 overflow-hidden">
+              <div className="h-full container max-w-6xl mx-auto px-4 pt-2 pb-20 md:pb-1 landscape:px-0.5 landscape:pb-1 overflow-hidden">
                 <SongDisplayPaged
                   lines={song.lines}
                   transposition={transposition}

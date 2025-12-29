@@ -104,19 +104,27 @@
   @media (max-height: 700px) and (orientation: landscape) {
     .song-columns {
       grid-template-columns: repeat(3, 1fr);
-      gap: 0.25rem;
+      gap: 0.15rem;
     }
 
     .song-col {
-      padding: 0 0.15rem;
+      padding: 0 0.1rem;
+    }
+
+    .song-col:not(:first-child) {
+      border-right: none;
     }
   }
 
-  /* Mobile Portrait or small screens: single column */
+  /* Mobile Portrait or small screens: 2 columns compact */
   @media (max-width: 599px), (orientation: portrait) and (max-width: 1200px) {
     .song-columns {
-      grid-template-columns: 1fr;
-      gap: 0;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+
+    .song-col {
+      padding: 0 0.25rem;
     }
   }
 
