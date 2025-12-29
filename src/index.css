@@ -94,43 +94,47 @@
     grid-template-columns: 1fr;
   }
 
-  /* Mobile Portrait: 2 columns (height > width) */
-  @media (orientation: portrait) {
+  /* Portrait: 2 columns (aspect-ratio < 1, meaning height > width) */
+  @media (max-aspect-ratio: 1/1) {
     .song-columns {
       grid-template-columns: repeat(2, 1fr) !important;
       gap: 0.5rem !important;
     }
 
     .song-col {
-      padding: 0 0.25rem;
+      padding: 0 0.25rem !important;
     }
   }
 
-  /* Mobile Landscape: 3 columns (width > height AND height < 700px) */
-  @media (orientation: landscape) and (max-height: 700px) {
+  /* Landscape Mobile: 3 columns (aspect-ratio >= 1 AND height < 700px) */
+  @media (min-aspect-ratio: 1/1) and (max-height: 700px) {
     .song-columns {
       grid-template-columns: repeat(3, 1fr) !important;
       gap: 0.15rem !important;
     }
 
     .song-col {
-      padding: 0 0.1rem;
+      padding: 0 0.1rem !important;
     }
 
     .song-col:not(:first-child) {
-      border-right: none;
+      border-right: none !important;
     }
   }
 
-  /* Desktop: 3 columns with spacing (large screen with normal height) */
-  @media (min-width: 900px) and (min-height: 701px) {
+  /* Desktop: 3 columns with spacing (large screen, aspect >= 1, height > 700px) */
+  @media (min-aspect-ratio: 1/1) and (min-width: 900px) and (min-height: 701px) {
     .song-columns {
       grid-template-columns: repeat(3, 1fr) !important;
       gap: 1.5rem !important;
     }
 
     .song-col {
-      padding: 0 0.5rem;
+      padding: 0 0.5rem !important;
+    }
+
+    .song-col:not(:first-child) {
+      border-right: 1px solid hsl(var(--border)) !important;
     }
   }
 

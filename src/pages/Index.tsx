@@ -392,108 +392,114 @@ const Index = () => {
               )}
             </div>
 
-            {/* Landscape - ultra compact single row [UPDATED-v4] */}
-            <div className="hidden landscape:flex items-center gap-0.5">
-              {song ? (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleBack}
-                    className="shrink-0 h-6 w-6"
-                    title="חזור [v4]"
-                  >
-                    <ChevronRight className="h-3 w-3" />
-                  </Button>
-                  <span className="text-[8px] text-primary/60 font-bold">v4</span>
-                </>
-              ) : (
-                <span className="text-[8px] text-primary font-bold px-1">v4</span>
-              )}
-
-              <div className="flex-1 min-w-0 max-w-[80px]">
-                <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
-              </div>
-
-              {song && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setTransposition(transposition + 1)}
-                    className="shrink-0 h-6 w-6"
-                    title="העלה טון"
-                  >
-                    <ChevronUp className="h-3 w-3" />
-                  </Button>
-
-                  <span className="text-xs font-mono tabular-nums text-foreground px-1 min-w-[1.5rem] text-center">
-                    {transposition > 0 ? `+${transposition}` : transposition}
-                  </span>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setTransposition(transposition - 1)}
-                    className="shrink-0 h-6 w-6"
-                    title="הורד טון"
-                  >
-                    <ChevronDown className="h-3 w-3" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setFontSize(fontSize + 1)}
-                    className="shrink-0 h-6 w-6"
-                    title="הגדל טקסט"
-                  >
-                    <span className="text-xs font-bold">A+</span>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setFontSize(fontSize - 1)}
-                    className="shrink-0 h-6 w-6"
-                    title="הקטן טקסט"
-                  >
-                    <span className="text-xs">A-</span>
-                  </Button>
-
-                  {transposition !== originalTransposition && (
+            {/* Landscape - organized row [UPDATED-v4] */}
+            <div className="hidden landscape:flex items-center gap-1 justify-between">
+              {/* Right side (RTL start): Back + v4 + Search + Controls */}
+              <div className="flex items-center gap-1">
+                {song ? (
+                  <>
                     <Button
                       variant="ghost"
-                      size="sm"
-                      onClick={handleResetToOriginal}
-                      className="shrink-0 h-6 px-1.5 text-[10px]"
-                      title="אפס לסולם המקורי"
+                      size="icon"
+                      onClick={handleBack}
+                      className="shrink-0 h-6 w-6"
+                      title="חזור [v4]"
                     >
-                      גרסה קלה
+                      <ChevronRight className="h-3 w-3" />
                     </Button>
-                  )}
-                </>
-              )}
+                    <span className="text-[8px] text-primary/60 font-bold">v4</span>
+                  </>
+                ) : (
+                  <span className="text-[8px] text-primary font-bold px-1">v4</span>
+                )}
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleHeaderVisibility}
-                className="shrink-0 h-6 w-6"
-                title={headerVisible ? "הסתר תפריט" : "הצג תפריט"}
-              >
-                <ChevronRight className={`h-3 w-3 transition-transform ${headerVisible ? 'rotate-[-90deg]' : 'rotate-90'}`} />
-              </Button>
+                <div className="flex-1 min-w-0 w-[120px]">
+                  <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
+                </div>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleFullscreen}
-                className="shrink-0 h-6 w-6"
-                title={isFullscreen ? "צא ממסך מלא" : "מסך מלא"}
-              >
-                {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
-              </Button>
+                {song && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setTransposition(transposition + 1)}
+                      className="shrink-0 h-6 w-6"
+                      title="העלה טון"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </Button>
+
+                    <span className="text-xs font-mono tabular-nums text-foreground px-1 min-w-[1.5rem] text-center">
+                      {transposition > 0 ? `+${transposition}` : transposition}
+                    </span>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setTransposition(transposition - 1)}
+                      className="shrink-0 h-6 w-6"
+                      title="הורד טון"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setFontSize(fontSize + 1)}
+                      className="shrink-0 h-6 w-6"
+                      title="הגדל טקסט"
+                    >
+                      <span className="text-xs font-bold">A+</span>
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setFontSize(fontSize - 1)}
+                      className="shrink-0 h-6 w-6"
+                      title="הקטן טקסט"
+                    >
+                      <span className="text-xs">A-</span>
+                    </Button>
+
+                    {transposition !== originalTransposition && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleResetToOriginal}
+                        className="shrink-0 h-6 px-1.5 text-[10px]"
+                        title="אפס לסולם המקורי"
+                      >
+                        גרסה קלה
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Left side (RTL end): Hide/Show + Fullscreen */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleHeaderVisibility}
+                  className="shrink-0 h-6 w-6"
+                  title={headerVisible ? "הסתר תפריט" : "הצג תפריט"}
+                >
+                  <ChevronRight className={`h-3 w-3 transition-transform ${headerVisible ? 'rotate-[-90deg]' : 'rotate-90'}`} />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleFullscreen}
+                  className="shrink-0 h-6 w-6"
+                  title={isFullscreen ? "צא ממסך מלא" : "מסך מלא"}
+                >
+                  {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -589,8 +595,8 @@ const Index = () => {
 
       {/* Fixed navigation at bottom-left - mobile only */}
       {song && totalPages > 1 && (
-        <div className="md:hidden fixed bottom-4 left-4 z-50">
-          <div className="flex items-center gap-1 bg-secondary/95 backdrop-blur-sm border border-border rounded-full px-2 py-1.5 shadow-lg">
+        <div className="max-h-[700px]:block min-h-[701px]:hidden fixed bottom-4 left-4 z-[9999] pointer-events-auto">
+          <div className="flex items-center gap-1 bg-secondary/95 backdrop-blur-sm border border-border rounded-full px-2 py-1.5 shadow-lg pointer-events-auto">
             <Button
               variant="ghost"
               size="icon"
