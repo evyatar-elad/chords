@@ -129,14 +129,9 @@
     min-width: 0;
   }
 
-  /* Chord segments - add spacing between consecutive chord segments */
+  /* Chord segments - no min-width to avoid extra gaps */
   .segment--chord {
     /* min-width removed to prevent spacing issues at line ends */
-  }
-
-  /* Add spacing between consecutive chord segments (RTL: use margin-right) */
-  .segment--chord + .segment--chord {
-    margin-right: 0.5em;
   }
 
   .segment:last-child {
