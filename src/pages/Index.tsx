@@ -265,8 +265,8 @@ const Index = () => {
         }}
       >
         <div className="container max-w-6xl mx-auto px-3 py-2 landscape:px-1 landscape:py-1">
-          {/* Mobile Layout - portrait OR landscape mobile */}
-          <div className="portrait:block landscape:block landscape:min-h-[701px]:hidden">
+          {/* Mobile Layout - portrait OR landscape mobile (height < 701px) */}
+          <div className="block portrait:block [@media(orientation:landscape)and(min-height:701px)]:hidden">
             {/* Portrait - 3 rows */}
             <div className="portrait:block landscape:hidden">
               {/* Row 1: Back/Logo + Title */}
@@ -390,8 +390,8 @@ const Index = () => {
               )}
             </div>
 
-            {/* Landscape - organized row (mobile only) */}
-            <div className="hidden landscape:flex landscape:min-h-[701px]:hidden items-center gap-1">
+            {/* Landscape - organized row (mobile only: height < 701px) */}
+            <div className="hidden landscape:flex [@media(orientation:landscape)and(min-height:701px)]:hidden items-center gap-1">
               {/* Right side (RTL start): Back + Controls OR empty when no song */}
               <div className="flex items-center gap-1">
                 {song && (
@@ -505,8 +505,8 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Desktop Layout - show only on landscape with large height */}
-          <div className="hidden landscape:min-h-[701px]:flex items-center gap-3">
+          {/* Desktop Layout - show only on landscape with height >= 701px */}
+          <div className="hidden [@media(orientation:landscape)and(min-height:701px)]:flex items-center gap-3">
             {song ? (
               <Button
                 variant="ghost"
