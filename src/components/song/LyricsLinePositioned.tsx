@@ -9,6 +9,20 @@ interface LyricsLinePositionedProps {
 }
 
 /**
+ * Clean chord label by removing spaces before common modifiers
+ * Fixes cases like "Bm7 b5" → "Bm7b5", "C #9" → "C#9"
+ */
+function cleanChordLabel(chordLabel: string): string {
+  if (!chordLabel) return chordLabel;
+
+  // Remove spaces before common modifiers: b5, b9, b13, #5, #9, #11, etc.
+  return chordLabel
+    .replace(/\s+([b#♭♯])(\d+)/g, '$1$2')  // "Bm7 b5" → "Bm7b5"
+    .replace(/\s+([b#♭♯])$/g, '$1')        // "Bb " → "Bb"
+    .trim();
+}
+
+/**
  * Scan-forward tokenizer: extracts chords one-by-one from a potentially concatenated string.
  * Handles cases like "E7Am", "AmDm", "Dm7G7", "Cadd9Em7", slash chords "C/G", etc.
  */
@@ -19,7 +33,7 @@ interface LyricsLinePositionedProps {
  * - Consume everything else (modifiers, numbers) until next A-G root
  */
 function normalizeChordTokens(chordLabel: string): string[] {
-  const raw = (chordLabel ?? "").trim();
+  const raw = cleanChordLabel(chordLabel ?? "").trim();
   if (!raw) return [];
 
   const tokens: string[] = [];
