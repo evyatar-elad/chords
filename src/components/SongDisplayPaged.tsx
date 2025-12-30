@@ -344,10 +344,10 @@ export function SongDisplayPaged({
         }
       });
 
-      // Calculate needed scale to fit content
+      // Calculate needed scale to fit content with safety margin
       if (maxOverflow > 0) {
         const maxWidth = columnWidth + maxOverflow;
-        const scale = columnWidth / maxWidth;
+        const scale = (columnWidth / maxWidth) * 0.97; // 3% safety margin to prevent edge cutoff
         // Apply scale with minimum of 70% to prevent text from being too small
         setFontScale(Math.max(0.7, scale));
       } else {
