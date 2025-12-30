@@ -266,7 +266,7 @@ const Index = () => {
       >
         <div className="container max-w-6xl mx-auto px-3 py-2 landscape:px-1 landscape:py-1">
           {/* Mobile Layout - portrait OR landscape mobile (height < 701px) */}
-          <div className="block portrait:block [@media(orientation:landscape)and(min-height:701px)]:hidden">
+          <div className="block portrait:block desktop:hidden">
             {/* Portrait - 3 rows */}
             <div className="portrait:block landscape:hidden">
               {/* Row 1: Back/Logo + Title */}
@@ -391,7 +391,7 @@ const Index = () => {
             </div>
 
             {/* Landscape - organized row (mobile only: height < 701px) */}
-            <div className="hidden landscape:flex [@media(orientation:landscape)and(min-height:701px)]:hidden items-center gap-1">
+            <div className="hidden landscape-mobile:flex items-center gap-1">
               {/* Right side (RTL start): Back + Controls OR empty when no song */}
               <div className="flex items-center gap-1">
                 {song && (
@@ -506,7 +506,7 @@ const Index = () => {
           </div>
 
           {/* Desktop Layout - show only on landscape with height >= 701px */}
-          <div className="hidden [@media(orientation:landscape)and(min-height:701px)]:flex items-center gap-3">
+          <div className="hidden desktop:flex items-center gap-3">
             {song ? (
               <Button
                 variant="ghost"
@@ -597,7 +597,7 @@ const Index = () => {
 
       {/* Fixed navigation at bottom-left - mobile only */}
       {song && totalPages > 1 && (
-        <div className="max-h-[700px]:block min-h-[701px]:hidden fixed bottom-4 left-4 z-[9999] pointer-events-auto">
+        <div className="short-screen:block tall-screen:hidden fixed bottom-4 left-4 z-[9999] pointer-events-auto">
           <div className="flex items-center gap-1 bg-secondary/95 backdrop-blur-sm border border-border rounded-full px-2 py-1.5 shadow-lg pointer-events-auto">
             <Button
               variant="ghost"
@@ -626,7 +626,7 @@ const Index = () => {
 
       {/* Fixed header toggle at top-left - only when header is hidden */}
       {!headerVisible && (
-        <div className="max-h-[700px]:block min-h-[701px]:hidden fixed top-4 left-4 z-[9999]">
+        <div className="short-screen:block tall-screen:hidden fixed top-4 left-4 z-[9999]">
           <button
             onClick={toggleHeaderVisibility}
             className="bg-secondary/95 backdrop-blur-sm border border-border rounded-full p-2.5 shadow-lg active:scale-95 transition-all"

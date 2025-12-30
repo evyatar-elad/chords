@@ -13,6 +13,16 @@ export default {
       },
     },
     extend: {
+      screens: {
+        'landscape-mobile': {
+          'raw': '(orientation: landscape) and (max-height: 700px)'
+        },
+        'desktop': {
+          'raw': '(min-aspect-ratio: 1/1) and (min-width: 900px) and (min-height: 701px)'
+        },
+        'short-screen': { 'raw': '(max-height: 700px)' },
+        'tall-screen': { 'raw': '(min-height: 701px)' },
+      },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
         mono: ["Roboto Mono", "monospace"],
