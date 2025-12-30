@@ -41,21 +41,17 @@ export function TranspositionControl({
 
   const handleUp = () => {
     const currentIndex = options.indexOf(value);
+    // Stop at maximum (+3) instead of cycling
     if (currentIndex < options.length - 1) {
       onChange(options[currentIndex + 1]);
-    } else {
-      // Cycle to beginning
-      onChange(options[0]);
     }
   };
 
   const handleDown = () => {
     const currentIndex = options.indexOf(value);
+    // Stop at minimum (-2.5) instead of cycling
     if (currentIndex > 0) {
       onChange(options[currentIndex - 1]);
-    } else {
-      // Cycle to end
-      onChange(options[options.length - 1]);
     }
   };
 
