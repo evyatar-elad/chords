@@ -391,7 +391,7 @@ const Index = () => {
             </div>
 
             {/* Landscape - organized row (mobile only: height < 701px) */}
-            <div className="hidden landscape-mobile:flex items-center gap-1">
+            <div className={`hidden landscape-mobile:flex items-center gap-1 ${!song ? 'justify-end' : ''}`}>
               {/* Right side (RTL start): Back + Controls OR empty when no song */}
               <div className="flex items-center gap-1">
                 {song && (
