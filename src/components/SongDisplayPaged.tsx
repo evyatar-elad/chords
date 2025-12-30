@@ -78,6 +78,7 @@ export function SongDisplayPaged({
   const [pages, setPages] = useState<SongLine[][][]>([]);
   const [measureKey, setMeasureKey] = useState(0);
   const [debugInfo, setDebugInfo] = useState<PaginationDebugInfo | null>(null);
+  const [fontScale, setFontScale] = useState(1);
 
   const inputSignature = useMemo(() => {
     return `${lines.length}|${transposition}|${fontSize}|${measureKey}`;
@@ -307,6 +308,55 @@ export function SongDisplayPaged({
     onTotalPagesChange?.(Math.max(1, pages.length));
   }, [pages.length, onTotalPagesChange]);
 
+  // Auto-scale font in portrait mode to prevent content cutoff
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Only apply in portrait mode
+    const isPortrait = window.innerHeight > window.innerWidth;
+    if (!isPortrait) {
+      setFontScale(1);
+      return;
+    }
+
+    // Give the DOM time to render
+    const timeoutId = setTimeout(() => {
+      if (!containerRef.current) return;
+
+      // Get column width
+      const columns = containerRef.current.querySelectorAll('.song-col');
+      if (columns.length === 0) {
+        setFontScale(1);
+        return;
+      }
+
+      const columnWidth = columns[0].clientWidth;
+
+      // Measure all lyrics rows
+      const lyricsRows = containerRef.current.querySelectorAll('.lyrics-row');
+      let maxOverflow = 0;
+
+      lyricsRows.forEach(row => {
+        const scrollWidth = row.scrollWidth;
+        if (scrollWidth > columnWidth) {
+          const overflow = scrollWidth - columnWidth;
+          if (overflow > maxOverflow) maxOverflow = overflow;
+        }
+      });
+
+      // Calculate needed scale to fit content
+      if (maxOverflow > 0) {
+        const maxWidth = columnWidth + maxOverflow;
+        const scale = columnWidth / maxWidth;
+        // Apply scale with minimum of 70% to prevent text from being too small
+        setFontScale(Math.max(0.7, scale));
+      } else {
+        setFontScale(1);
+      }
+    }, 50); // Small delay to ensure DOM is ready
+
+    return () => clearTimeout(timeoutId);
+  }, [currentPage, fontSize, transposition, pages.length]);
 
   // Get current page columns - DO NOT reverse, let CSS direction:rtl handle visual order
   const currentPageCols = pages[currentPage] || [];
@@ -328,7 +378,7 @@ export function SongDisplayPaged({
     <div
       ref={containerRef}
       className="song-container relative"
-      style={{ fontSize: `${fontSize}px` }}
+      style={{ fontSize: `${fontSize * fontScale}px` }}
     >
       {debug ? <PaginationDebugOverlay info={debugInfo} /> : null}
 
