@@ -424,11 +424,16 @@ function tokenizeGluedChords(chordLabel: string): string[] {
     const isUpperRoot = /[A-G]/.test(ch);
     const isLowerRoot = /[a-g]/.test(ch);
     
+    // Check if 'b' is a flat modifier (e.g., b5, b9, b13) rather than a chord root
+    const nextChar = i + 1 < raw.length ? raw[i + 1] : "";
+    const isFlatModifier = ch === 'b' && /[0-9]/.test(nextChar);
+    
     // Lowercase root only starts new chord if:
     // - We already have content AND
     // - Previous char is a digit or closing paren (indicating end of previous chord modifier)
+    // - It's NOT a flat modifier like b5, b9, b13
     const prevChar = i > 0 ? raw[i - 1] : "";
-    const shouldSplitOnLower = isLowerRoot && current && /[0-9)]/.test(prevChar);
+    const shouldSplitOnLower = isLowerRoot && current && /[0-9)]/.test(prevChar) && !isFlatModifier;
     
     if (isUpperRoot || shouldSplitOnLower) {
       // If we already have a chord building, save it first
