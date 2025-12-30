@@ -438,12 +438,15 @@ function tokenizeGluedChords(chordLabel: string): string[] {
     // Check if this is a chord root (A-G uppercase OR a-g lowercase when glued)
     const isUpperRoot = /[A-G]/.test(ch);
     const isLowerRoot = /[a-g]/.test(ch);
-    
+
     // Lowercase root only starts new chord if:
     // - We already have content AND
     // - Previous char is a digit or closing paren (indicating end of previous chord modifier)
+    // - BUT: lowercase 'b' followed by digit is a FLAT MODIFIER (b5, b9, b13), NOT a new chord!
     const prevChar = i > 0 ? raw[i - 1] : "";
-    const shouldSplitOnLower = isLowerRoot && current && /[0-9)]/.test(prevChar);
+    const nextChar = i + 1 < raw.length ? raw[i + 1] : "";
+    const isFlatModifier = ch === 'b' && /[0-9]/.test(nextChar);
+    const shouldSplitOnLower = isLowerRoot && current && /[0-9)]/.test(prevChar) && !isFlatModifier;
     
     if (isUpperRoot || shouldSplitOnLower) {
       // If we already have a chord building, save it first
