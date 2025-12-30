@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Guitar, ChevronLeft, ChevronRight, Maximize, Minimize, ChevronUp, ChevronDown } from "lucide-react";
 import { SongInput } from "@/components/SongInput";
 import { SongDisplayPaged } from "@/components/SongDisplayPaged";
@@ -132,6 +132,44 @@ const Index = () => {
 
   const handleResetToOriginal = () => {
     setTransposition(originalTransposition);
+  };
+
+  // Transposition options: -2.5 to 3 in 0.5 steps (same as TranspositionControl)
+  const transpositionOptions = useMemo(() => {
+    const opts: number[] = [];
+    for (let v = -2.5; v <= 3; v += 0.5) {
+      opts.push(v);
+    }
+    return opts;
+  }, []);
+
+  const handleTransposeUp = useCallback(() => {
+    const currentIndex = transpositionOptions.indexOf(transposition);
+    if (currentIndex === -1) {
+      setTransposition(transpositionOptions[0]);
+    } else if (currentIndex < transpositionOptions.length - 1) {
+      setTransposition(transpositionOptions[currentIndex + 1]);
+    } else {
+      // Cycle back to minimum
+      setTransposition(transpositionOptions[0]);
+    }
+  }, [transposition, transpositionOptions]);
+
+  const handleTransposeDown = useCallback(() => {
+    const currentIndex = transpositionOptions.indexOf(transposition);
+    if (currentIndex === -1) {
+      setTransposition(transpositionOptions[transpositionOptions.length - 1]);
+    } else if (currentIndex > 0) {
+      setTransposition(transpositionOptions[currentIndex - 1]);
+    } else {
+      // Cycle back to maximum
+      setTransposition(transpositionOptions[transpositionOptions.length - 1]);
+    }
+  }, [transposition, transpositionOptions]);
+
+  const formatTransposition = (v: number) => {
+    if (Object.is(v, -0) || v === 0) return "0";
+    return v > 0 ? `+${v}` : `${v}`;
   };
 
   // Fullscreen toggle
@@ -331,7 +369,7 @@ const Index = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setTransposition(transposition + 1)}
+                    onClick={handleTransposeUp}
                     className="shrink-0 h-7 w-7"
                     title="העלה טון"
                   >
@@ -339,13 +377,13 @@ const Index = () => {
                   </Button>
 
                   <span className="text-xs font-mono tabular-nums text-foreground px-1.5 min-w-[2rem] text-center">
-                    {transposition > 0 ? `+${transposition}` : transposition}
+                    {formatTransposition(transposition)}
                   </span>
 
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setTransposition(transposition - 1)}
+                    onClick={handleTransposeDown}
                     className="shrink-0 h-7 w-7"
                     title="הורד טון"
                   >
@@ -409,7 +447,7 @@ const Index = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setTransposition(transposition + 1)}
+                      onClick={handleTransposeUp}
                       className="shrink-0 h-6 w-6"
                       title="העלה טון"
                     >
@@ -417,13 +455,13 @@ const Index = () => {
                     </Button>
 
                     <span className="text-xs font-mono tabular-nums text-foreground px-1 min-w-[1.5rem] text-center">
-                      {transposition > 0 ? `+${transposition}` : transposition}
+                      {formatTransposition(transposition)}
                     </span>
 
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setTransposition(transposition - 1)}
+                      onClick={handleTransposeDown}
                       className="shrink-0 h-6 w-6"
                       title="הורד טון"
                     >
