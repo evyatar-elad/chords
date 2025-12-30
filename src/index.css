@@ -170,15 +170,11 @@
     align-items: flex-start;
   }
 
-  /* Portrait mode: prevent line breaks, reduce font for better fit */
+  /* Portrait mode: prevent line breaks (font auto-scaled by JavaScript) */
   @media (max-aspect-ratio: 1/1) {
     .lyrics-row {
       flex-wrap: nowrap;
       overflow: hidden;
-    }
-
-    .song-container {
-      font-size: 0.85em; /* Reduce base font by 15% in portrait for long lines */
     }
   }
 
