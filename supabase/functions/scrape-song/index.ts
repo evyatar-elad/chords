@@ -396,11 +396,26 @@ interface ExtractedChordPosition {
 }
 
 /**
+ * Clean chord label by removing spaces before common modifiers
+ * Fixes cases like "Bm7 b5" → "Bm7b5", "C #9" → "C#9"
+ * MUST run BEFORE tokenizeGluedChords to prevent incorrect splitting
+ */
+function cleanChordLabel(chordLabel: string): string {
+  if (!chordLabel) return chordLabel;
+
+  // Remove spaces before common modifiers: b5, b9, b13, #5, #9, #11, etc.
+  return chordLabel
+    .replace(/\s+([b#♭♯])(\d+)/g, '$1$2')  // "Bm7 b5" → "Bm7b5"
+    .replace(/\s+([b#♭♯])$/g, '$1')        // "Bb " → "Bb"
+    .trim();
+}
+
+/**
  * Tokenize a potentially glued chord string like "E7Am" or "AmDm" into separate chords.
  * Handles uppercase and lowercase roots (for cases like "E7am").
  */
 function tokenizeGluedChords(chordLabel: string): string[] {
-  const raw = (chordLabel ?? "").trim();
+  const raw = cleanChordLabel(chordLabel ?? "").trim();
   if (!raw) return [];
 
   const tokens: string[] = [];
@@ -423,16 +438,14 @@ function tokenizeGluedChords(chordLabel: string): string[] {
     // Check if this is a chord root (A-G uppercase OR a-g lowercase when glued)
     const isUpperRoot = /[A-G]/.test(ch);
     const isLowerRoot = /[a-g]/.test(ch);
-    
-    // Check if 'b' is a flat modifier (e.g., b5, b9, b13) rather than a chord root
-    const nextChar = i + 1 < raw.length ? raw[i + 1] : "";
-    const isFlatModifier = ch === 'b' && /[0-9]/.test(nextChar);
-    
+
     // Lowercase root only starts new chord if:
     // - We already have content AND
     // - Previous char is a digit or closing paren (indicating end of previous chord modifier)
-    // - It's NOT a flat modifier like b5, b9, b13
+    // - BUT: lowercase 'b' followed by digit is a FLAT MODIFIER (b5, b9, b13), NOT a new chord!
     const prevChar = i > 0 ? raw[i - 1] : "";
+    const nextChar = i + 1 < raw.length ? raw[i + 1] : "";
+    const isFlatModifier = ch === 'b' && /[0-9]/.test(nextChar);
     const shouldSplitOnLower = isLowerRoot && current && /[0-9)]/.test(prevChar) && !isFlatModifier;
     
     if (isUpperRoot || shouldSplitOnLower) {

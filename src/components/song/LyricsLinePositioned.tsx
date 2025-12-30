@@ -53,11 +53,19 @@ function normalizeChordTokens(chordLabel: string): string[] {
       continue;
     }
 
-    // Check if this is a chord root (A-G uppercase)
-    if (/[A-G]/.test(ch)) {
+    // Check if this is a chord root (A-G uppercase OR a-g lowercase when glued)
+    const isUpperRoot = /[A-G]/.test(ch);
+    const isLowerRoot = /[a-g]/.test(ch);
+    const prevChar = i > 0 ? raw[i - 1] : "";
+    const nextChar = i + 1 < raw.length ? raw[i + 1] : "";
+
+    // Lowercase 'b' followed by digit is a FLAT MODIFIER (b5, b9, b13), NOT a new chord!
+    const isFlatModifier = ch === 'b' && /[0-9]/.test(nextChar);
+    const shouldSplitOnLower = isLowerRoot && current && /[0-9)]/.test(prevChar) && !isFlatModifier;
+
+    if (isUpperRoot || shouldSplitOnLower) {
       // If we already have a chord building, save it first
       // Exception: if previous char was '/', this is a bass note
-      const prevChar = i > 0 ? raw[i - 1] : "";
       if (current && prevChar !== "/") {
         tokens.push(current);
         current = "";

@@ -6,13 +6,27 @@ interface ChordsOnlyLineNewProps {
 }
 
 /**
+ * Clean chord label by removing spaces before common modifiers
+ * Fixes cases like "Bm7 b5" → "Bm7b5", "C #9" → "C#9"
+ */
+function cleanChordLabel(chordLabel: string): string {
+  if (!chordLabel) return chordLabel;
+
+  // Remove spaces before common modifiers: b5, b9, b13, #5, #9, #11, etc.
+  return chordLabel
+    .replace(/\s+([b#♭♯])(\d+)/g, '$1$2')  // "Bm7 b5" → "Bm7b5"
+    .replace(/\s+([b#♭♯])$/g, '$1')        // "Bb " → "Bb"
+    .trim();
+}
+
+/**
  * Simple and reliable chord tokenizer:
  * - Any uppercase A-G starts a NEW chord
  * - Exception: A-G after '/' is a bass note (part of current chord)
  * - Consume everything else (modifiers, numbers) until next A-G root
  */
 function normalizeChordTokens(chordLabel: string): string[] {
-  const raw = (chordLabel ?? "").trim();
+  const raw = cleanChordLabel(chordLabel ?? "").trim();
   if (!raw) return [];
 
   const tokens: string[] = [];
@@ -32,11 +46,19 @@ function normalizeChordTokens(chordLabel: string): string[] {
       continue;
     }
 
-    // Check if this is a chord root (A-G uppercase)
-    if (/[A-G]/.test(ch)) {
+    // Check if this is a chord root (A-G uppercase OR a-g lowercase when glued)
+    const isUpperRoot = /[A-G]/.test(ch);
+    const isLowerRoot = /[a-g]/.test(ch);
+    const prevChar = i > 0 ? raw[i - 1] : "";
+    const nextChar = i + 1 < raw.length ? raw[i + 1] : "";
+
+    // Lowercase 'b' followed by digit is a FLAT MODIFIER (b5, b9, b13), NOT a new chord!
+    const isFlatModifier = ch === 'b' && /[0-9]/.test(nextChar);
+    const shouldSplitOnLower = isLowerRoot && current && /[0-9)]/.test(prevChar) && !isFlatModifier;
+
+    if (isUpperRoot || shouldSplitOnLower) {
       // If we already have a chord building, save it first
       // Exception: if previous char was '/', this is a bass note
-      const prevChar = i > 0 ? raw[i - 1] : "";
       if (current && prevChar !== "/") {
         tokens.push(current);
         current = "";

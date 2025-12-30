@@ -208,10 +208,26 @@ export function SongDisplayPaged({
 
     if (!containerHeight || !containerWidth || cols === 0) return;
 
-    // Our columns use CSS padding (0 0.75rem). To make pagination deterministic,
+    // Our columns use CSS padding that varies by screen size. To make pagination deterministic,
     // measure using the inner content width (what the text actually wraps within).
     const colWidth = Math.floor(containerWidth / cols);
-    const colPadX = 12; // 0.75rem ≈ 12px
+
+    // Calculate padding based on screen mode (must match CSS media queries)
+    let colPadX: number;
+    const isPortrait = containerHeight > containerWidth;
+    const isLandscape = !isPortrait && containerHeight <= 700;
+    const isDesktop = !isPortrait && containerHeight > 700 && containerWidth >= 900;
+
+    if (isPortrait) {
+      colPadX = 4; // 0.25rem ≈ 4px (Portrait)
+    } else if (isLandscape) {
+      colPadX = 1.6; // 0.1rem ≈ 1.6px (Landscape Mobile)
+    } else if (isDesktop) {
+      colPadX = 8; // 0.5rem ≈ 8px (Desktop)
+    } else {
+      colPadX = 8; // Fallback: 0.5rem ≈ 8px
+    }
+
     const measureWidth = Math.max(120, colWidth - (colPadX * 2 + 1)); // subtract padding + divider
 
     measure.style.width = `${measureWidth}px`;
