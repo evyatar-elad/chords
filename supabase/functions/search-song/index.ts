@@ -5,10 +5,55 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ============================================
+// RATE LIMITING
+// ============================================
+// Simple in-memory rate limiter (resets on function cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+const getRateLimitKey = (req: Request): string => {
+  return req.headers.get('x-forwarded-for') ||
+    req.headers.get('x-real-ip') ||
+    'unknown';
+};
+
+const checkRateLimit = (
+  clientKey: string,
+  maxRequests = 15,
+  windowMs = 60000
+): boolean => {
+  const now = Date.now();
+  const limit = rateLimitMap.get(clientKey);
+
+  if (!limit || limit.resetAt < now) {
+    rateLimitMap.set(clientKey, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+
+  if (limit.count >= maxRequests) {
+    return false;
+  }
+
+  limit.count++;
+  return true;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  // Rate limiting check
+  const clientKey = getRateLimitKey(req);
+  if (!checkRateLimit(clientKey)) {
+    console.warn('Rate limit exceeded for client:', clientKey);
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  console.log('Request from:', clientKey);
 
   try {
     const { query } = await req.json();
