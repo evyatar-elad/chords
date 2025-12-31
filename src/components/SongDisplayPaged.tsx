@@ -260,18 +260,49 @@ export function SongDisplayPaged({
           heights.push(Math.ceil(node.offsetHeight));
         });
 
+        // Step 1: Calculate total content height
+        const totalHeight = heights.reduce((sum, h) => sum + h, 0);
+        
+        // Step 2: Calculate how many columns we need total
+        const totalColumnsNeeded = Math.ceil(totalHeight / containerHeight);
+        
+        // Step 3: Calculate how many pages we need
+        const totalPagesNeeded = Math.ceil(totalColumnsNeeded / cols);
+        
+        // Step 4: Calculate total columns across all pages
+        const totalColumns = totalPagesNeeded * cols;
+        
+        // Step 5: Calculate target height per column (distribute evenly)
+        // This ensures content is spread across all columns rather than filling first columns completely
+        const targetHeightPerColumn = totalHeight / totalColumns;
+        
+        // Step 6: Distribute lines across columns using balanced approach
         const newPages: SongLine[][][] = [];
         let pageCols: SongLine[][] = [];
         let colLines: SongLine[] = [];
         let colHeight = 0;
-
+        let columnsCreated = 0;
+        
         for (let i = 0; i < lines.length; i++) {
           const h = heights[i] ?? 0;
-
-          if (colLines.length > 0 && colHeight + h > containerHeight) {
+          
+          // Move to next column if:
+          // 1. Current column has content AND
+          // 2. Adding this line would exceed target height (balanced distribution) OR exceed max height (hard limit)
+          const exceedsTarget = colHeight > 0 && colHeight + h > targetHeightPerColumn;
+          const exceedsMax = colHeight > 0 && colHeight + h > containerHeight;
+          
+          // Only break column if we've exceeded target AND have more columns available for better distribution
+          // But always break if we exceed the hard max (containerHeight)
+          const remainingLines = lines.length - i;
+          const remainingColumns = totalColumns - columnsCreated - 1;
+          const shouldBreak = exceedsMax || (exceedsTarget && remainingLines <= remainingColumns * 2);
+          
+          if (shouldBreak) {
             pageCols.push(colLines);
             colLines = [];
             colHeight = 0;
+            columnsCreated++;
 
             if (pageCols.length === cols) {
               newPages.push(pageCols);
