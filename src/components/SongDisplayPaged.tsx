@@ -286,17 +286,15 @@ export function SongDisplayPaged({
         for (let i = 0; i < lines.length; i++) {
           const h = heights[i] ?? 0;
           
-          // Move to next column if:
+          // Break column if:
           // 1. Current column has content AND
-          // 2. Adding this line would exceed target height (balanced distribution) OR exceed max height (hard limit)
-          const exceedsTarget = colHeight > 0 && colHeight + h > targetHeightPerColumn;
-          const exceedsMax = colHeight > 0 && colHeight + h > containerHeight;
+          // 2. Adding this line would exceed target height (balanced distribution)
+          // Always respect targetHeightPerColumn for even distribution
+          const wouldExceedTarget = colHeight > 0 && colHeight + h > targetHeightPerColumn;
+          const wouldExceedMax = colHeight > 0 && colHeight + h > containerHeight;
           
-          // Only break column if we've exceeded target AND have more columns available for better distribution
-          // But always break if we exceed the hard max (containerHeight)
-          const remainingLines = lines.length - i;
-          const remainingColumns = totalColumns - columnsCreated - 1;
-          const shouldBreak = exceedsMax || (exceedsTarget && remainingLines <= remainingColumns * 2);
+          // Break on target to achieve balanced columns, but always break on max
+          const shouldBreak = wouldExceedTarget || wouldExceedMax;
           
           if (shouldBreak) {
             pageCols.push(colLines);
