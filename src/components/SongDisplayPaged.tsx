@@ -197,13 +197,29 @@ export function SongDisplayPaged({
     const padTop = parseFloat(cs.paddingTop) || 0;
     const padBottom = parseFloat(cs.paddingBottom) || 0;
     
-    // Dynamic safety margin: ~3 lines worth of space (hard stop before the bottom)
-    // lineHeight is 1.8, so one line ≈ fontSize * 1.8
     const lineHeightPx = fontSize * 1.8;
-    const safetyPx = Math.max(120, lineHeightPx * 3.25);
-
-    const containerHeight = Math.max(0, container.clientHeight - padTop - padBottom - safetyPx);
     const containerWidth = container.clientWidth;
+    const rawContainerHeight = container.clientHeight;
+
+    // Determine display mode for safety margin calculation
+    const isPortrait = rawContainerHeight > containerWidth;
+    const isLandscape = !isPortrait && rawContainerHeight <= 700;
+    const isDesktop = !isPortrait && rawContainerHeight > 700 && containerWidth >= 900;
+
+    // Dynamic safety margin based on display mode:
+    // - Portrait: minimal safety (lots of vertical space available)
+    // - Landscape Mobile: moderate safety (limited height)
+    // - Desktop: comfortable safety margin
+    let safetyPx: number;
+    if (isPortrait) {
+      safetyPx = lineHeightPx * 1.5; // ~1.5 lines - portrait has plenty of height
+    } else if (isLandscape) {
+      safetyPx = lineHeightPx * 2; // ~2 lines - landscape is tight
+    } else {
+      safetyPx = lineHeightPx * 2.5; // ~2.5 lines - desktop is comfortable
+    }
+
+    const containerHeight = Math.max(0, rawContainerHeight - padTop - padBottom - safetyPx);
     const cols = columnCount;
 
     if (!containerHeight || !containerWidth || cols === 0) return;
@@ -214,10 +230,6 @@ export function SongDisplayPaged({
 
     // Calculate padding based on screen mode (must match CSS media queries)
     let colPadX: number;
-    const isPortrait = containerHeight > containerWidth;
-    const isLandscape = !isPortrait && containerHeight <= 700;
-    const isDesktop = !isPortrait && containerHeight > 700 && containerWidth >= 900;
-
     if (isPortrait) {
       colPadX = 4; // 0.25rem ≈ 4px (Portrait)
     } else if (isLandscape) {
