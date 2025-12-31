@@ -260,90 +260,148 @@ export function SongDisplayPaged({
           heights.push(Math.ceil(node.offsetHeight));
         });
 
-        // Step 1: Calculate total content height
-        const totalHeight = heights.reduce((sum, h) => sum + h, 0);
-        
-        // Step 2: Calculate how many columns we need total
-        const totalColumnsNeeded = Math.ceil(totalHeight / containerHeight);
-        
-        // Step 3: Calculate how many pages we need
-        const totalPagesNeeded = Math.ceil(totalColumnsNeeded / cols);
-        
-        // Step 4: Calculate total columns across all pages
-        const totalColumns = totalPagesNeeded * cols;
-        
-        // Step 5: Calculate target height per column (distribute evenly)
-        // This ensures content is spread across all columns rather than filling first columns completely
-        const targetHeightPerColumn = totalHeight / totalColumns;
-        
-        // Step 6: Distribute lines across columns using balanced approach
-        const newPages: SongLine[][][] = [];
-        let pageCols: SongLine[][] = [];
-        let colLines: SongLine[] = [];
-        let colHeight = 0;
-        let columnsCreated = 0;
-        
+        // ============================================
+        // STEP 1: GREEDY HARD LIMIT (Minimum Pages)
+        // ============================================
+        // Fill columns up to containerHeight to determine minimum columns/pages needed
+        const greedyColumns: { lines: SongLine[]; height: number }[] = [];
+        let greedyColLines: SongLine[] = [];
+        let greedyColHeight = 0;
+
         for (let i = 0; i < lines.length; i++) {
           const h = heights[i] ?? 0;
           
-          // Break column if:
-          // 1. Current column has content AND
-          // 2. Adding this line would exceed target height (balanced distribution)
-          // Always respect targetHeightPerColumn for even distribution
-          const wouldExceedTarget = colHeight > 0 && colHeight + h > targetHeightPerColumn;
-          const wouldExceedMax = colHeight > 0 && colHeight + h > containerHeight;
+          // Break column only when we would exceed containerHeight (hard limit)
+          if (greedyColHeight > 0 && greedyColHeight + h > containerHeight) {
+            greedyColumns.push({ lines: greedyColLines, height: greedyColHeight });
+            greedyColLines = [];
+            greedyColHeight = 0;
+          }
           
-          // Break on target to achieve balanced columns, but always break on max
-          const shouldBreak = wouldExceedTarget || wouldExceedMax;
-          
-          if (shouldBreak) {
-            pageCols.push(colLines);
-            colLines = [];
-            colHeight = 0;
-            columnsCreated++;
+          greedyColLines.push(lines[i]);
+          greedyColHeight += h;
+        }
+        
+        // Don't forget the last column
+        if (greedyColLines.length > 0) {
+          greedyColumns.push({ lines: greedyColLines, height: greedyColHeight });
+        }
 
-            if (pageCols.length === cols) {
-              newPages.push(pageCols);
-              pageCols = [];
+        // Calculate minimum pages needed
+        const totalColumnsGreedy = greedyColumns.length;
+        const totalPagesGreedy = Math.ceil(totalColumnsGreedy / cols);
+
+        // ============================================
+        // STEP 2: BALANCE WITHIN EACH PAGE ONLY
+        // ============================================
+        // Group greedy columns into pages, then redistribute lines within each page
+        const newPages: SongLine[][][] = [];
+
+        for (let pageIdx = 0; pageIdx < totalPagesGreedy; pageIdx++) {
+          const startColIdx = pageIdx * cols;
+          const endColIdx = Math.min(startColIdx + cols, totalColumnsGreedy);
+          const pageGreedyColumns = greedyColumns.slice(startColIdx, endColIdx);
+          
+          // Collect all lines and heights for this page
+          const pageLines: SongLine[] = [];
+          const pageHeights: number[] = [];
+          let pageTotalHeight = 0;
+          
+          for (const col of pageGreedyColumns) {
+            for (const line of col.lines) {
+              const originalIdx = lines.indexOf(line);
+              const h = heights[originalIdx] ?? 0;
+              pageLines.push(line);
+              pageHeights.push(h);
+              pageTotalHeight += h;
             }
           }
-
-          colLines.push(lines[i]);
-          colHeight += h;
-        }
-
-        if (colLines.length > 0) {
-          pageCols.push(colLines);
-        }
-        if (pageCols.length > 0) {
+          
+          // How many columns should this page actually have?
+          // Last page might have fewer columns
+          const activeColsInPage = pageGreedyColumns.length;
+          
+          // Target height per column for balanced distribution within this page
+          const targetHeightPerColumn = pageTotalHeight / activeColsInPage;
+          
+          // ============================================
+          // STEP 3: REDISTRIBUTE LINES WITHIN PAGE
+          // ============================================
+          const pageCols: SongLine[][] = [];
+          let colLines: SongLine[] = [];
+          let colHeight = 0;
+          
+          for (let i = 0; i < pageLines.length; i++) {
+            const h = pageHeights[i];
+            const remainingLines = pageLines.length - i;
+            const remainingCols = activeColsInPage - pageCols.length;
+            
+            // Conditions for breaking to next column:
+            // 1. Would exceed containerHeight (hard limit) - always break
+            // 2. Would exceed targetHeightPerColumn AND there are enough lines for remaining columns
+            const wouldExceedMax = colHeight > 0 && colHeight + h > containerHeight;
+            const wouldExceedTarget = colHeight > 0 && colHeight + h > targetHeightPerColumn;
+            const hasEnoughForRemainingCols = remainingLines > remainingCols;
+            
+            const shouldBreak = wouldExceedMax || (wouldExceedTarget && hasEnoughForRemainingCols && remainingCols > 1);
+            
+            if (shouldBreak && pageCols.length < activeColsInPage - 1) {
+              pageCols.push(colLines);
+              colLines = [];
+              colHeight = 0;
+            }
+            
+            colLines.push(pageLines[i]);
+            colHeight += h;
+          }
+          
+          // Push last column
+          if (colLines.length > 0) {
+            pageCols.push(colLines);
+          }
+          
+          // Pad to full column count for consistent layout
+          while (pageCols.length < cols) {
+            pageCols.push([]);
+          }
+          
           newPages.push(pageCols);
         }
 
-         const padded = newPages.map((p) => {
-           const copy = [...p];
-           while (copy.length < cols) copy.push([]);
-           return copy;
-         });
+        // If no content, ensure at least one empty page
+        if (newPages.length === 0) {
+          newPages.push(Array.from({ length: cols }, () => []));
+        }
 
-         setPages(padded);
-         if (debug) {
-           setDebugInfo({
-             cols,
-             containerWidth,
-             containerHeight,
-             padTop,
-             padBottom,
-             safetyPx,
-             columnWidth: colWidth,
-             measureWidth,
-             fontSize,
-             pages: Math.max(1, padded.length),
-             mergedChordLinesCount: mergedChordInfoByLineIdx.size,
-             mergedChordLinesPreview: mergedChordPreview,
-           });
-         } else {
-           setDebugInfo(null);
-         }
+        setPages(newPages);
+        
+        // ============================================
+        // STEP 4: ENHANCED DEBUG INFO
+        // ============================================
+        const totalHeight = heights.reduce((sum, h) => sum + h, 0);
+        
+        if (debug) {
+          setDebugInfo({
+            cols,
+            containerWidth,
+            containerHeight,
+            padTop,
+            padBottom,
+            safetyPx,
+            columnWidth: colWidth,
+            measureWidth,
+            fontSize,
+            pages: Math.max(1, newPages.length),
+            mergedChordLinesCount: mergedChordInfoByLineIdx.size,
+            mergedChordLinesPreview: mergedChordPreview,
+            // Enhanced debug info
+            totalHeight,
+            totalColumnsGreedy,
+            totalPagesGreedy,
+          } as PaginationDebugInfo);
+        } else {
+          setDebugInfo(null);
+        }
       });
 
       return () => cancelAnimationFrame(raf2);

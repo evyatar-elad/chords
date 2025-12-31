@@ -13,6 +13,10 @@ export type PaginationDebugInfo = {
   pages: number;
   mergedChordLinesCount: number;
   mergedChordLinesPreview: string[];
+  // Enhanced debug info for new algorithm
+  totalHeight?: number;
+  totalColumnsGreedy?: number;
+  totalPagesGreedy?: number;
 };
 
 export const PaginationDebugOverlay = memo(function PaginationDebugOverlay({
@@ -36,6 +40,15 @@ export const PaginationDebugOverlay = memo(function PaginationDebugOverlay({
       <div>measureWidth: {Math.round(info.measureWidth)}px</div>
       <div>fontSize: {info.fontSize}px</div>
       <div>pages: {info.pages}</div>
+      
+      {info.totalHeight !== undefined && (
+        <>
+          <div className="mt-2 font-semibold">Greedy Algorithm</div>
+          <div>totalHeight: {Math.round(info.totalHeight)}px</div>
+          <div>greedyCols: {info.totalColumnsGreedy}</div>
+          <div>greedyPages: {info.totalPagesGreedy}</div>
+        </>
+      )}
 
       <div className="mt-2 font-semibold">DEBUG chords</div>
       <div>mergedLines: {info.mergedChordLinesCount}</div>
