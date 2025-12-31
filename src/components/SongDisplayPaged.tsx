@@ -348,12 +348,14 @@ export function SongDisplayPaged({
             // 2. Would exceed targetHeightPerColumn AND there are enough lines for remaining columns
             const wouldExceedMax = colHeight > 0 && colHeight + h > containerHeight;
             const wouldExceedTarget = colHeight > 0 && colHeight + h > targetHeightPerColumn;
-            const hasEnoughForRemainingCols = remainingLines > remainingCols;
+            const hasEnoughForRemainingCols = remainingLines >= remainingCols;
 
             const shouldBreak =
               wouldExceedMax ||
               (wouldExceedTarget && hasEnoughForRemainingCols && remainingCols > 1);
 
+            // Only break if we haven't reached the last column yet
+            // This ensures we don't create more columns than determined by greedy phase
             if (shouldBreak && pageCols.length < activeColsInPage - 1) {
               pageCols.push(colLines);
               colLines = [];
