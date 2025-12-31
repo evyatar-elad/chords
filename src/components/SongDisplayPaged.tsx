@@ -182,9 +182,20 @@ export function SongDisplayPaged({
   useEffect(() => {
     if (typeof document !== 'undefined' && document.fonts?.ready) {
       document.fonts.ready.then(() => {
-        setMeasureKey(k => k + 1);
+        // Give extra time for fonts to render
+        setTimeout(() => {
+          setMeasureKey(k => k + 1);
+        }, 100);
       });
     }
+  }, []);
+
+  // Additional re-measure after initial render to catch any late-loading fonts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMeasureKey(k => k + 1);
+    }, 300);
+    return () => clearTimeout(timer);
   }, []);
 
   // Calculate pagination based on available height
@@ -212,11 +223,11 @@ export function SongDisplayPaged({
     // - Desktop: comfortable safety margin
     let safetyPx: number;
     if (isPortrait) {
-      safetyPx = lineHeightPx * 1.5; // ~1.5 lines - portrait has plenty of height
+      safetyPx = lineHeightPx * 1.0; // ~1 line - portrait has plenty of height, minimize wasted space
     } else if (isLandscape) {
-      safetyPx = lineHeightPx * 2; // ~2 lines - landscape is tight
+      safetyPx = lineHeightPx * 1.5; // ~1.5 lines - landscape is tight
     } else {
-      safetyPx = lineHeightPx * 2.5; // ~2.5 lines - desktop is comfortable
+      safetyPx = lineHeightPx * 2.0; // ~2 lines - desktop is comfortable
     }
 
     const containerHeight = Math.max(0, rawContainerHeight - padTop - padBottom - safetyPx);
@@ -444,16 +455,9 @@ export function SongDisplayPaged({
     onTotalPagesChange?.(Math.max(1, pages.length));
   }, [pages.length, onTotalPagesChange]);
 
-  // Auto-scale font in portrait mode to prevent content cutoff
+  // Auto-scale font to prevent content cutoff in all modes
   useEffect(() => {
     if (!containerRef.current) return;
-
-    // Only apply in portrait mode
-    const isPortrait = window.innerHeight > window.innerWidth;
-    if (!isPortrait) {
-      setFontScale(1);
-      return;
-    }
 
     // Give the DOM time to render
     const timeoutId = setTimeout(() => {
@@ -483,13 +487,13 @@ export function SongDisplayPaged({
       // Calculate needed scale to fit content with safety margin
       if (maxOverflow > 0) {
         const maxWidth = columnWidth + maxOverflow;
-        const scale = (columnWidth / maxWidth) * 0.97; // 3% safety margin to prevent edge cutoff
-        // Apply scale with minimum of 70% to prevent text from being too small
-        setFontScale(Math.max(0.7, scale));
+        const scale = (columnWidth / maxWidth) * 0.98; // 2% safety margin to prevent edge cutoff
+        // Apply scale with minimum of 75% to prevent text from being too small
+        setFontScale(Math.max(0.75, scale));
       } else {
         setFontScale(1);
       }
-    }, 50); // Small delay to ensure DOM is ready
+    }, 100); // Increased delay to ensure DOM and fonts are ready
 
     return () => clearTimeout(timeoutId);
   }, [currentPage, fontSize, transposition, pages.length]);
