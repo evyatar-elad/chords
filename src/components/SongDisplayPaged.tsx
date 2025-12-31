@@ -185,17 +185,36 @@ export function SongDisplayPaged({
         // Give extra time for fonts to render
         setTimeout(() => {
           setMeasureKey(k => k + 1);
-        }, 100);
+        }, 200);
       });
     }
   }, []);
 
-  // Additional re-measure after initial render to catch any late-loading fonts
+  // Multiple re-measures to ensure accurate layout after fonts and DOM are ready
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timers: NodeJS.Timeout[] = [];
+
+    // First re-measure - catch early font loads
+    timers.push(setTimeout(() => {
       setMeasureKey(k => k + 1);
-    }, 300);
-    return () => clearTimeout(timer);
+    }, 150));
+
+    // Second re-measure - catch slower font loads
+    timers.push(setTimeout(() => {
+      setMeasureKey(k => k + 1);
+    }, 500));
+
+    // Third re-measure - ensure fonts are rendered
+    timers.push(setTimeout(() => {
+      setMeasureKey(k => k + 1);
+    }, 1000));
+
+    // Final re-measure - catch very late loads (slow networks)
+    timers.push(setTimeout(() => {
+      setMeasureKey(k => k + 1);
+    }, 2000));
+
+    return () => timers.forEach(t => clearTimeout(t));
   }, []);
 
   // Calculate pagination based on available height
@@ -223,11 +242,11 @@ export function SongDisplayPaged({
     // - Desktop: comfortable safety margin
     let safetyPx: number;
     if (isPortrait) {
-      safetyPx = lineHeightPx * 1.0; // ~1 line - portrait has plenty of height, minimize wasted space
+      safetyPx = lineHeightPx * 0.5; // ~0.5 line - minimal safety, maximize content space
     } else if (isLandscape) {
-      safetyPx = lineHeightPx * 1.5; // ~1.5 lines - landscape is tight
+      safetyPx = lineHeightPx * 1.0; // ~1 line - landscape is tight
     } else {
-      safetyPx = lineHeightPx * 2.0; // ~2 lines - desktop is comfortable
+      safetyPx = lineHeightPx * 1.5; // ~1.5 lines - desktop is comfortable
     }
 
     const containerHeight = Math.max(0, rawContainerHeight - padTop - padBottom - safetyPx);
@@ -254,7 +273,9 @@ export function SongDisplayPaged({
     const measureWidth = Math.max(120, colWidth - (colPadX * 2 + 1)); // subtract padding + divider
 
     measure.style.width = `${measureWidth}px`;
-    measure.style.fontSize = `${fontSize}px`;
+    // CRITICAL: Must match the actual displayed fontSize (fontSize * fontScale)
+    // Otherwise measurements will be incorrect and cause excessive whitespace
+    measure.style.fontSize = `${fontSize * fontScale}px`;
 
     // Double RAF for stability after layout
     const raf1 = requestAnimationFrame(() => {
@@ -444,6 +465,7 @@ export function SongDisplayPaged({
     inputSignature,
     lines,
     fontSize,
+    fontScale, // Re-measure when font scale changes
     transposition,
     columnCount,
     debug,
