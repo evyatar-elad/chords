@@ -105,11 +105,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate it's a tab4u.com URL
-    if (!url.includes('tab4u.com')) {
-      console.error('Invalid URL - not tab4u.com:', url);
+    // Strict URL validation to prevent SSRF attacks
+    try {
+      const parsedUrl = new URL(url);
+      
+      // 1. Validate protocol (only http/https)
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        console.error('Invalid protocol:', parsedUrl.protocol);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid URL protocol' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // 2. Validate hostname exactly matches or is subdomain of tab4u.com
+      const hostname = parsedUrl.hostname.toLowerCase();
+      if (hostname !== 'tab4u.com' && 
+          hostname !== 'www.tab4u.com' &&
+          !hostname.endsWith('.tab4u.com')) {
+        console.error('Invalid hostname:', hostname);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Only tab4u.com URLs are supported' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // 3. Block localhost and private IP ranges
+      if (hostname === 'localhost' || 
+          hostname === '127.0.0.1' ||
+          /^10\./.test(hostname) ||
+          /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
+          /^192\.168\./.test(hostname)) {
+        console.error('Private IP or localhost blocked:', hostname);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid URL' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+    } catch (e) {
+      console.error('URL parsing error:', e);
       return new Response(
-        JSON.stringify({ success: false, error: 'Only tab4u.com URLs are supported' }),
+        JSON.stringify({ success: false, error: 'Invalid URL format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
