@@ -1,6 +1,7 @@
 import { Bug } from "lucide-react";
 import { TranspositionControl } from "./TranspositionControl";
 import { FontSizeControl } from "./FontSizeControl";
+import { EasyVersionButton } from "./EasyVersionButton";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
@@ -9,8 +10,8 @@ interface FloatingToolbarProps {
   onTranspositionChange: (value: number) => void;
   fontSize: number;
   onFontSizeChange: (value: number) => void;
-  originalTransposition?: number;
-  onResetToOriginal?: () => void;
+  easyTransposition: number;
+  hasEasyVersion: boolean;
   debug?: boolean;
   onDebugToggle?: () => void;
 }
@@ -20,8 +21,8 @@ export function FloatingToolbar({
   onTranspositionChange,
   fontSize,
   onFontSizeChange,
-  originalTransposition,
-  onResetToOriginal,
+  easyTransposition,
+  hasEasyVersion,
   debug,
   onDebugToggle,
 }: FloatingToolbarProps) {
@@ -31,6 +32,8 @@ export function FloatingToolbar({
       <FontSizeControl
         value={fontSize}
         onChange={onFontSizeChange}
+        min={10}
+        max={28}
       />
       
       <Separator orientation="vertical" className="h-5 bg-border/50" />
@@ -39,8 +42,14 @@ export function FloatingToolbar({
       <TranspositionControl
         value={transposition}
         onChange={onTranspositionChange}
-        originalTransposition={originalTransposition}
-        onResetToOriginal={onResetToOriginal}
+      />
+
+      <EasyVersionButton
+        transposition={transposition}
+        easyTransposition={easyTransposition}
+        hasEasyVersion={hasEasyVersion}
+        onChange={onTranspositionChange}
+        className="h-7 px-2"
       />
 
       {/* Debug toggle */}

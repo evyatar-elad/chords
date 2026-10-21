@@ -12,16 +12,9 @@ import {
 interface TranspositionControlProps {
   value: number;
   onChange: (value: number) => void;
-  originalTransposition?: number;
-  onResetToOriginal?: () => void;
 }
 
-export function TranspositionControl({ 
-  value, 
-  onChange, 
-  originalTransposition,
-  onResetToOriginal 
-}: TranspositionControlProps) {
+export function TranspositionControl({ value, onChange }: TranspositionControlProps) {
   // Generate options from -2.5 to 3 in 0.5 steps
   const options = useMemo(() => {
     const opts: number[] = [];
@@ -35,9 +28,6 @@ export function TranspositionControl({
     if (Object.is(v, -0) || v === 0) return "0";
     return v > 0 ? `+${v}` : `${v}`;
   };
-
-  const isAtOriginal = originalTransposition !== undefined && 
-                       value === originalTransposition;
 
   const handleUp = () => {
     const currentIndex = options.indexOf(value);
@@ -102,22 +92,6 @@ export function TranspositionControl({
         <ChevronUp className="h-4 w-4" />
       </Button>
 
-      {/* Easy version button - always visible */}
-      {originalTransposition !== undefined && onResetToOriginal && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={isAtOriginal ? undefined : onResetToOriginal}
-          disabled={isAtOriginal}
-          className={`h-7 px-2 text-xs mr-1 ${
-            isAtOriginal
-              ? "text-primary/50 cursor-default"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          גרסה קלה
-        </Button>
-      )}
     </div>
   );
 }

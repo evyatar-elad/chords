@@ -75,67 +75,21 @@
 @layer utilities {
   /* ===== SONG DISPLAY ===== */
 
+  /* direction/text-align come from the song (dir attribute), Hebrew by default */
   .song-container {
     font-family: var(--font-hebrew);
-    direction: rtl;
-    text-align: right;
     line-height: 1.8;
     height: 100%;
     max-height: 100%;
     overflow: hidden;
   }
 
+  /* Column count is set inline by SongDisplayPaged so it always matches the pagination */
   .song-columns {
     display: grid;
     height: 100%;
     overflow: hidden;
     gap: 0.75rem;
-    /* Default: 1 column (fallback) */
-    grid-template-columns: 1fr;
-  }
-
-  /* Portrait: 2 columns (aspect-ratio < 1, meaning height > width) */
-  @media (max-aspect-ratio: 1/1) {
-    .song-columns {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 0.5rem !important;
-    }
-
-    .song-col {
-      padding: 0 0.25rem !important;
-    }
-  }
-
-  /* Landscape Mobile: 3 columns (aspect-ratio >= 1 AND height < 700px) */
-  @media (min-aspect-ratio: 1/1) and (max-height: 700px) {
-    .song-columns {
-      grid-template-columns: repeat(3, 1fr) !important;
-      gap: 0.15rem !important;
-    }
-
-    .song-col {
-      padding: 0 0.1rem !important;
-    }
-
-    .song-col:not(:first-child) {
-      border-right: none !important;
-    }
-  }
-
-  /* Desktop: 3 columns with spacing (large screen, aspect >= 1, height > 700px) */
-  @media (min-aspect-ratio: 1/1) and (min-width: 900px) and (min-height: 701px) {
-    .song-columns {
-      grid-template-columns: repeat(3, 1fr) !important;
-      gap: 1.5rem !important;
-    }
-
-    .song-col {
-      padding: 0 0.5rem !important;
-    }
-
-    .song-col:not(:first-child) {
-      border-right: 1px solid hsl(var(--border)) !important;
-    }
   }
 
   .song-col {
@@ -144,38 +98,61 @@
     max-height: 100%;
     padding: 0 0.5rem;
     overflow: hidden;
-  }
-
-  .song-col:first-child {
-    padding-right: 0;
-  }
-
-  .song-col:last-child {
-    padding-left: 0;
+    container-type: inline-size;
   }
 
   .song-col:not(:first-child) {
-    border-right: 1px solid hsl(var(--border));
+    border-inline-start: 1px solid hsl(var(--border));
+  }
+
+  /* Portrait */
+  @media (max-aspect-ratio: 1/1) {
+    .song-columns {
+      gap: 0.5rem;
+    }
+
+    .song-col {
+      padding: 0 0.25rem;
+    }
+  }
+
+  /* Landscape mobile */
+  @media (min-aspect-ratio: 1/1) and (max-height: 700px) {
+    .song-columns {
+      gap: 0.4rem;
+    }
+
+    .song-col {
+      padding: 0 0.2rem;
+    }
+  }
+
+  /* Desktop */
+  @media (min-aspect-ratio: 1/1) and (min-width: 900px) and (min-height: 701px) {
+    .song-columns {
+      gap: 1.5rem;
+    }
+
+    .song-col {
+      padding: 0 0.5rem;
+    }
+  }
+
+  /* One wrapper per song line. flow-root keeps the children's margins inside,
+     so the measured height is exactly the space the line takes. */
+  .song-line {
+    display: flow-root;
   }
 
   /* ===== LYRICS ROW - Segment-based ===== */
-  
+
   .lyrics-row {
     display: flex;
     flex-direction: row;
+    /* wraps only if the line is still too wide after the font was scaled down */
     flex-wrap: wrap;
-    direction: rtl;
-    text-align: right;
     margin-bottom: 0.25em;
     align-items: flex-start;
-  }
-
-  /* Portrait mode: prevent line breaks (font auto-scaled by JavaScript) */
-  @media (max-aspect-ratio: 1/1) {
-    .lyrics-row {
-      flex-wrap: nowrap;
-      overflow: hidden;
-    }
   }
 
   /* Each segment: chord on top, text on bottom */
@@ -185,15 +162,6 @@
     align-items: flex-start;
     flex: 0 0 auto;
     min-width: 0;
-  }
-
-  /* Chord segments - no min-width to avoid extra gaps */
-  .segment--chord {
-    /* min-width removed to prevent spacing issues at line ends */
-  }
-
-  .segment:last-child {
-    padding-left: 0;
   }
 
   .segment-chord {
@@ -207,15 +175,24 @@
     direction: ltr;
     unicode-bidi: isolate;
     display: inline-flex;
-    gap: 1.5em;
-    flex-wrap: wrap;
+    gap: 0.5em;
     align-items: baseline;
+    white-space: nowrap;
+  }
+
+  /* Minimum distance to the next chord, on the side the line flows to.
+     (Physical sides: the chord box itself is always LTR.) */
+  .lyrics-row[dir="rtl"] .segment--chord .segment-chord {
     padding-left: 0.4em;
   }
 
-  /* Remove padding from first chord in a line */
-  .segment:first-child .segment-chord {
+  .lyrics-row[dir="ltr"] .segment--chord .segment-chord {
+    padding-right: 0.4em;
+  }
+
+  .lyrics-row .segment:last-child .segment-chord {
     padding-left: 0;
+    padding-right: 0;
   }
 
   .chord-token {
@@ -223,50 +200,79 @@
     white-space: nowrap;
   }
 
-  /* Fallback spacing for consecutive chord tokens */
-  .chord-token + .chord-token {
-    margin-left: 1.5em;
-  }
-
-  /* Preserve spaces inside text, allow wrap between segments */
+  /* Spaces inside the lyrics are significant (tab4u pads with them) */
   .segment-text {
-    display: inline;
-    white-space: pre-wrap;
-    direction: rtl;
-    unicode-bidi: plaintext;
+    white-space: pre;
   }
 
-  /* Chords-only line */
+  .lyrics-row--plain .segment-text {
+    white-space: pre-wrap;
+  }
+
+  /* Chords-only line (intro, interlude) – left to right, like tab4u */
   .chords-only-line-new {
-    display: flex;
-    flex-wrap: wrap;
-    direction: rtl;
-    justify-content: flex-start;
-    gap: 1.5em;
-    margin-bottom: 0.5em;
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    text-align: left;
+    margin-bottom: 0.4em;
+  }
+
+  .chords-only-line-new--end {
+    text-align: right;
   }
 
   .chord-item-new {
     color: hsl(var(--chord));
     text-shadow: 0 0 8px hsl(var(--chord-glow) / 0.5);
     font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .chords-only-sep {
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Guitar tabs: shrink to fit the column (Roboto Mono advance is 0.6em) */
+  .tab-block {
     font-family: var(--font-mono);
-    direction: ltr;
-    unicode-bidi: isolate;
+    font-size: min(0.8em, calc(100cqi / (var(--tab-cols) * 0.6 + 0.5)));
+    line-height: 1.25;
+    color: hsl(var(--foreground) / 0.85);
+    white-space: pre;
+    text-align: left;
+    overflow: hidden;
+    margin: 0.2em 0 0.5em;
   }
 
   /* Section header */
   .section-header {
     font-weight: 600;
     color: hsl(var(--muted-foreground));
-    margin-top: 1.5em;
-    margin-bottom: 0.5em;
-    direction: rtl;
+    margin-top: 0.6em;
+    margin-bottom: 0.2em;
   }
 
   /* Empty line */
   .empty-line {
-    height: 1em;
+    height: 0.8em;
+  }
+
+  /* Hidden copy of a column used to measure lines (see SongDisplayPaged) */
+  .song-measure {
+    visibility: hidden;
+    position: absolute;
+    pointer-events: none;
+    left: 0;
+    top: 0;
+    overflow: visible;
+    container-type: inline-size;
+  }
+
+  .song-measure--natural .lyrics-row {
+    flex-wrap: nowrap;
+    width: max-content;
   }
 
   /* Glass effect for toolbar */

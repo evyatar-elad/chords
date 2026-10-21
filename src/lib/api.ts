@@ -1,9 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// New deterministic data model
+// Mirrors supabase/functions/scrape-song/parser.ts
 export interface ChordPosition {
   chord: string;
-  at: number; // character offset in lyrics
+  at: number; // index of the first lyric character under the chord (may be past the end)
 }
 
 export interface LyricsLine {
@@ -12,9 +12,21 @@ export interface LyricsLine {
   chords: ChordPosition[];
 }
 
+export interface ChordsOnlySegment {
+  text: string;
+  chord?: boolean;
+}
+
 export interface ChordsOnlyLine {
   type: 'chords-only';
   chords: string[];
+  segments?: ChordsOnlySegment[];
+}
+
+export interface TabLine {
+  type: 'tab';
+  rows: string[];
+  chords?: ChordsOnlySegment[]; // chord row above the tab, padded to line up with it
 }
 
 export interface SectionLine {
@@ -26,7 +38,7 @@ export interface EmptyLine {
   type: 'empty';
 }
 
-export type SongLine = LyricsLine | ChordsOnlyLine | SectionLine | EmptyLine;
+export type SongLine = LyricsLine | ChordsOnlyLine | TabLine | SectionLine | EmptyLine;
 
 export interface SongData {
   title: string;
@@ -34,6 +46,7 @@ export interface SongData {
   lines: SongLine[];
   transposition: number;
   hasEasyVersion: boolean;
+  direction?: 'rtl' | 'ltr';
 }
 
 export interface ScrapeSongResponse {
@@ -42,10 +55,32 @@ export interface ScrapeSongResponse {
   error?: string;
 }
 
+export interface SearchResult {
+  title: string;
+  artist: string;
+  url: string;
+}
+
 export interface SearchSongResponse {
   url?: string;
+  results?: SearchResult[];
   error?: string;
   message?: string;
+}
+
+/** supabase.functions.invoke hides the response body of non-2xx replies; dig our error message out. */
+async function invokeErrorMessage(error: unknown): Promise<string> {
+  const context = (error as { context?: unknown })?.context;
+  if (context instanceof Response) {
+    try {
+      const body = await context.clone().json();
+      if (body?.message) return body.message;
+      if (body?.error) return body.error;
+    } catch {
+      // not JSON
+    }
+  }
+  return error instanceof Error ? error.message : 'Unknown error occurred';
 }
 
 /**
@@ -60,7 +95,7 @@ export async function searchSong(query: string): Promise<SearchSongResponse> {
 
     if (error) {
       console.error('Error calling search-song function:', error);
-      return { error: error.message };
+      return { error: await invokeErrorMessage(error) };
     }
 
     return data as SearchSongResponse;
@@ -84,7 +119,7 @@ export async function scrapeSong(url: string): Promise<ScrapeSongResponse> {
 
     if (error) {
       console.error('Error calling scrape-song function:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: await invokeErrorMessage(error) };
     }
 
     return data as ScrapeSongResponse;

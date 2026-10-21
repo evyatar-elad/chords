@@ -38,6 +38,71 @@ const checkRateLimit = (
   return true;
 };
 
+interface SearchResult {
+  title: string;
+  artist: string;
+  url: string;
+}
+
+const BROWSER_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+
+const decodeEntities = (s: string) =>
+  s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
+    if (e[0] === '#') {
+      const cp = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      return Number.isFinite(cp) && cp > 0 ? String.fromCodePoint(cp) : m;
+    }
+    return ({ nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" } as Record<string, string>)[e.toLowerCase()] ?? m;
+  });
+
+const textOf = (html: string) => decodeEntities(html.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
+
+/** Song links from tab4u's own search results page (resultsSimple). */
+function parseSearchResults(html: string): SearchResult[] {
+  const results: SearchResult[] = [];
+  const seen = new Set<string>();
+  const linkRe = /<a\b[^>]*class\s*=\s*["'][^"']*\bruSongLink\b[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = linkRe.exec(html)) !== null) {
+    const href = m[0].match(/href\s*=\s*["']([^"']*tabs\/songs\/[^"']+)["']/i)?.[1];
+    if (!href) continue;
+    const url = new URL(decodeEntities(href), 'https://www.tab4u.com/').toString();
+    if (seen.has(url)) continue;
+    seen.add(url);
+    const title = textOf(m[1].match(/class\s*=\s*["']sNameI19["'][^>]*>([\s\S]*?)<\/div>/i)?.[1] ?? '').replace(/\s*\/$/, '');
+    const artist = textOf(m[1].match(/class\s*=\s*["']aNameI19["'][^>]*>([\s\S]*?)<\/div>/i)?.[1] ?? '');
+    results.push({ title: title || url, artist, url });
+  }
+  return results;
+}
+
+/** tab4u's search page, fetched directly; Firecrawl only as a fallback. */
+async function fetchSearchHtml(query: string): Promise<string> {
+  const searchUrl = `https://www.tab4u.com/resultsSimple?tab=songs&q=${encodeURIComponent(query)}`;
+  try {
+    const res = await fetch(searchUrl, {
+      headers: { 'User-Agent': BROWSER_UA, 'Accept-Language': 'he,en;q=0.8' },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (res.ok) return await res.text();
+    console.warn('Direct search failed with status', res.status);
+  } catch (e) {
+    console.warn('Direct search error:', e);
+  }
+
+  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+  if (!apiKey) throw new Error('Search is unavailable');
+  const res = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: searchUrl, formats: ['html'], onlyMainContent: false }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) throw new Error(data.error || 'Failed to perform search');
+  return data.data?.html || '';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -65,70 +130,20 @@ serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-    if (!apiKey) {
-      console.error('FIRECRAWL_API_KEY is not set');
+    const trimmed = query.trim().slice(0, 100);
+    const html = await fetchSearchHtml(trimmed);
+    const results = parseSearchResults(html).slice(0, 15);
+    console.log('Search', JSON.stringify(trimmed), '→', results.length, 'results');
+
+    if (results.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'No song found', message: 'לא נמצא שיר מתאים, נסה לדייק את שם השיר או להזין לינק ישיר', results: [] }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Search tab4u.com using Google search via Firecrawl
-    const searchUrl = `https://www.google.com/search?q=site:tab4u.com+${encodeURIComponent(query)}`;
-    console.log('Searching with URL:', searchUrl);
-
-    const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: searchUrl,
-        formats: ['html'],
-        waitFor: 2000,
-      }),
-    });
-
-    if (!scrapeResponse.ok) {
-      const errorText = await scrapeResponse.text();
-      console.error('Firecrawl API error:', errorText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to perform search' }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const data = await scrapeResponse.json();
-    const html = data.data?.html;
-
-    if (!html) {
-      console.error('No HTML content in Firecrawl response');
-      return new Response(
-        JSON.stringify({ error: 'No search results found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Parse HTML to find first tab4u.com/tabs/songs/ link
-    const linkRegex = /https?:\/\/(?:www\.)?tab4u\.com\/tabs\/songs\/[^"'\s<>]+/gi;
-    const matches = html.match(linkRegex);
-
-    if (!matches || matches.length === 0) {
-      console.log('No tab4u song links found in search results');
-      return new Response(
-        JSON.stringify({ error: 'No song found', message: 'לא נמצא שיר מתאים, נסה לדייק את שם השיר או להזין לינק ישיר' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Return the first match
-    const songUrl = matches[0];
-    console.log('Found song URL:', songUrl);
 
     return new Response(
-      JSON.stringify({ url: songUrl }),
+      JSON.stringify({ url: results[0].url, results }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

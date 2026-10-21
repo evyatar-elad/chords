@@ -4,9 +4,27 @@ import { SongInput } from "@/components/SongInput";
 import { SongDisplayPaged } from "@/components/SongDisplayPaged";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
 import { QuickSongInput } from "@/components/QuickSongInput";
+import { EasyVersionButton } from "@/components/EasyVersionButton";
+import { SearchResultsDialog } from "@/components/SearchResultsDialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { scrapeSong, searchSong, SongData } from "@/lib/api";
+import { scrapeSong, searchSong, SongData, SearchResult } from "@/lib/api";
+
+const MIN_FONT_SIZE = 10;
+const MAX_FONT_SIZE = 28;
+const FONT_SIZE_KEY = "fontSize";
+
+const clampFontSize = (v: number) => Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, v));
+
+function loadFontSize() {
+  try {
+    const saved = Number(localStorage.getItem(FONT_SIZE_KEY));
+    if (saved) return clampFontSize(saved);
+  } catch {
+    // storage unavailable
+  }
+  return 14; // Smaller initial size for mobile columns
+}
 
 const Index = () => {
   const { toast } = useToast();
@@ -15,7 +33,9 @@ const Index = () => {
   const [loadingMessage, setLoadingMessage] = useState<string>("");
   const [transposition, setTransposition] = useState(0);
   const [originalTransposition, setOriginalTransposition] = useState(0);
-  const [fontSize, setFontSize] = useState(14); // Smaller initial size for mobile columns
+  const [fontSize, setFontSizeState] = useState(loadFontSize);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -28,49 +48,27 @@ const Index = () => {
     return localStorage.getItem("debugPagination") === "1";
   });
 
-  const handleSubmit = async (input: string) => {
-    setIsLoading(true);
-    setSong(null);
-    setTransposition(0);
-    setOriginalTransposition(0);
-    setCurrentPage(0);
-    setLoadingMessage("");
-
+  const setFontSize = useCallback((value: number) => {
+    const next = clampFontSize(value);
+    setFontSizeState(next);
     try {
-      let urlToScrape = input;
+      localStorage.setItem(FONT_SIZE_KEY, String(next));
+    } catch {
+      // storage unavailable
+    }
+  }, []);
 
-      // Detect if input is a URL or search text
-      const isUrl = input.startsWith('http://') || input.startsWith('https://') || input.includes('tab4u.com');
-
-      if (!isUrl) {
-        // It's a search query - search first
-        setLoadingMessage("מחפש...");
-        const searchResponse = await searchSong(input);
-
-        if (searchResponse.error || !searchResponse.url) {
-          toast({
-            title: "לא נמצא שיר מתאים",
-            description: searchResponse.message || "נסה לדייק את שם השיר או להזין לינק ישיר",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          setLoadingMessage("");
-          return;
-        }
-
-        urlToScrape = searchResponse.url;
-      }
-
-      // Now scrape the song
-      setLoadingMessage("טוען שיר...");
-      const response = await scrapeSong(urlToScrape);
+  const loadSong = async (url: string) => {
+    setIsLoading(true);
+    setLoadingMessage("טוען שיר...");
+    try {
+      const response = await scrapeSong(url);
 
       if (response.success && response.data) {
         setSong(response.data);
-        if (response.data.transposition !== 0) {
-          setTransposition(response.data.transposition);
-          setOriginalTransposition(response.data.transposition);
-        }
+        setCurrentPage(0);
+        setTransposition(response.data.transposition || 0);
+        setOriginalTransposition(response.data.transposition || 0);
       } else {
         toast({
           title: "שגיאה בטעינת השיר",
@@ -90,6 +88,51 @@ const Index = () => {
       setLoadingMessage("");
     }
   };
+
+  const handleSubmit = async (input: string) => {
+    // Detect if input is a URL or search text
+    const isUrl = /^https?:\/\//i.test(input) || input.includes('tab4u.com');
+    if (isUrl) {
+      await loadSong(/^https?:\/\//i.test(input) ? input : `https://${input}`);
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage("מחפש...");
+    try {
+      const searchResponse = await searchSong(input);
+      const results = searchResponse.results ?? (searchResponse.url ? [{ title: input, artist: "", url: searchResponse.url }] : []);
+
+      if (searchResponse.error || results.length === 0) {
+        toast({
+          title: "לא נמצא שיר מתאים",
+          description: searchResponse.message || "נסה לדייק את שם השיר או להזין לינק ישיר",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (results.length === 1) {
+        await loadSong(results[0].url);
+      } else {
+        setSearchQuery(input);
+        setSearchResults(results);
+      }
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage("");
+    }
+  };
+
+  const handleSelectResult = (result: SearchResult) => {
+    setSearchResults([]);
+    loadSong(result.url);
+  };
+
+  // Keep the page in range when the page count shrinks (rotation, smaller font)
+  useEffect(() => {
+    if (currentPage > totalPages - 1) setCurrentPage(Math.max(0, totalPages - 1));
+  }, [currentPage, totalPages]);
 
   const goToNextPage = useCallback(() => {
     if (currentPage < totalPages - 1) {
@@ -128,10 +171,6 @@ const Index = () => {
     setSong(null);
     setTransposition(0);
     setOriginalTransposition(0);
-  };
-
-  const handleResetToOriginal = () => {
-    setTransposition(originalTransposition);
   };
 
   // Transposition options: -2.5 to 3 in 0.5 steps (same as TranspositionControl)
@@ -396,6 +435,7 @@ const Index = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => setFontSize(fontSize + 1)}
+                    disabled={fontSize >= MAX_FONT_SIZE}
                     className="shrink-0 h-7 px-2"
                     title="הגדל טקסט"
                   >
@@ -406,6 +446,7 @@ const Index = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => setFontSize(fontSize - 1)}
+                    disabled={fontSize <= MIN_FONT_SIZE}
                     className="shrink-0 h-7 px-2"
                     title="הקטן טקסט"
                   >
@@ -414,16 +455,13 @@ const Index = () => {
 
                   <div className="w-px h-5 bg-border mx-1" />
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleResetToOriginal}
-                    disabled={transposition === originalTransposition}
-                    className="shrink-0 h-7 px-2 text-xs"
-                    title={transposition === originalTransposition ? "כבר בגרסה קלה" : "אפס לסולם המקורי"}
-                  >
-                    גרסה קלה
-                  </Button>
+                  <EasyVersionButton
+                    transposition={transposition}
+                    easyTransposition={originalTransposition}
+                    hasEasyVersion={!!song.hasEasyVersion}
+                    onChange={setTransposition}
+                    className="h-7 px-2"
+                  />
                 </div>
               )}
             </div>
@@ -472,6 +510,7 @@ const Index = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => setFontSize(fontSize + 1)}
+                    disabled={fontSize >= MAX_FONT_SIZE}
                       className="shrink-0 h-6 w-6"
                       title="הגדל טקסט"
                     >
@@ -482,25 +521,38 @@ const Index = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => setFontSize(fontSize - 1)}
+                    disabled={fontSize <= MIN_FONT_SIZE}
                       className="shrink-0 h-6 w-6"
                       title="הקטן טקסט"
                     >
                       <span className="text-xs">A-</span>
                     </Button>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleResetToOriginal}
-                      disabled={transposition === originalTransposition}
-                      className="shrink-0 h-6 px-1.5 text-[10px]"
-                      title={transposition === originalTransposition ? "כבר בגרסה קלה" : "אפס לסולם המקורי"}
-                    >
-                      גרסה קלה
-                    </Button>
+                    <EasyVersionButton
+                    transposition={transposition}
+                    easyTransposition={originalTransposition}
+                    hasEasyVersion={!!song.hasEasyVersion}
+                    onChange={setTransposition}
+                    className="h-6 px-1.5 text-[10px]"
+                  />
                   </>
                 )}
               </div>
+
+              {/* Page navigation (the floating one would cover the song in this short layout) */}
+              {song && totalPages > 1 && (
+                <div className="flex items-center shrink-0" dir="rtl">
+                  <Button variant="ghost" size="icon" onClick={goToPrevPage} disabled={currentPage === 0} className="h-6 w-6" title="עמוד קודם">
+                    <ChevronRight className="h-3 w-3" />
+                  </Button>
+                  <span className="text-xs font-mono tabular-nums text-foreground px-1">
+                    {currentPage + 1}/{totalPages}
+                  </span>
+                  <Button variant="ghost" size="icon" onClick={goToNextPage} disabled={currentPage >= totalPages - 1} className="h-6 w-6" title="עמוד הבא">
+                    <ChevronLeft className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
 
               {/* Center: Song name and artist */}
               {song && (
@@ -575,8 +627,8 @@ const Index = () => {
                 onTranspositionChange={setTransposition}
                 fontSize={fontSize}
                 onFontSizeChange={setFontSize}
-                originalTransposition={originalTransposition}
-                onResetToOriginal={handleResetToOriginal}
+                easyTransposition={originalTransposition}
+                hasEasyVersion={!!song?.hasEasyVersion}
                 debug={debugPagination}
                 onDebugToggle={() => {
                   setDebugPagination((v) => {
@@ -635,7 +687,7 @@ const Index = () => {
 
       {/* Fixed navigation at bottom-left - mobile only */}
       {song && totalPages > 1 && (
-        <div className="block desktop:hidden fixed bottom-4 left-4 z-[9999] pointer-events-auto">
+        <div className={`${headerVisible ? "hidden portrait:block" : "block"} desktop:hidden fixed bottom-4 left-4 z-[9999] pointer-events-auto`}>
           <div className="flex items-center gap-1 bg-secondary/95 backdrop-blur-sm border border-border rounded-full px-2 py-1.5 shadow-lg pointer-events-auto">
             <Button
               variant="ghost"
@@ -678,12 +730,19 @@ const Index = () => {
       {/* Fixed page indicator - desktop only */}
       {song && totalPages > 1 && (
         <div
-          className="hidden md:block fixed bottom-4 left-4 z-50 bg-secondary/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5 text-xs font-mono tabular-nums text-muted-foreground pointer-events-none"
+          className="hidden desktop:block fixed bottom-4 left-4 z-50 bg-secondary/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5 text-xs font-mono tabular-nums text-muted-foreground pointer-events-none"
           style={{ direction: 'ltr' }}
         >
           {currentPage + 1} / {totalPages}
         </div>
       )}
+
+      <SearchResultsDialog
+        query={searchQuery}
+        results={searchResults}
+        onSelect={handleSelectResult}
+        onClose={() => setSearchResults([])}
+      />
 
       {/* Main content */}
       <main className="min-h-screen transition-[padding-top] duration-300" style={{ paddingTop: `var(--header-h, 56px)` }}> 
@@ -704,9 +763,10 @@ const Index = () => {
         ) : (
           <div className="h-[calc(100dvh-var(--header-h,56px))] flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
-              <div className="h-full container max-w-6xl mx-auto px-4 pt-4 pb-20 md:pb-1 landscape:px-0.5 landscape:pt-2 landscape:pb-1 overflow-hidden">
+              <div className="h-full container max-w-6xl mx-auto px-4 pt-4 pb-20 landscape:px-0.5 landscape:pt-2 landscape:pb-1 overflow-hidden">
                 <SongDisplayPaged
                   lines={song.lines}
+                  direction={song.direction ?? "rtl"}
                   transposition={transposition}
                   fontSize={fontSize}
                   currentPage={currentPage}
