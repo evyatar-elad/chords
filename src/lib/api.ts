@@ -68,60 +68,19 @@ export interface SearchSongResponse {
   message?: string;
 }
 
-const RATE_LIMIT_MESSAGE = 'יותר מדי בקשות בדקה האחרונה, נסה שוב בעוד רגע';
-const SEARCH_FALLBACK = 'לא נמצא שיר מתאים, נסה לדייק את שם השיר או להזין לינק ישיר';
-const SCRAPE_FALLBACK = 'לא הצלחתי לטעון את השיר, נסה שוב או הזן לינק ישיר';
-
-function parseJson(text: string): Record<string, unknown> | null {
-  try {
-    return JSON.parse(text) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-/** Pull a human-readable line out of whatever the function sent back. */
-function messageFromValue(value: unknown): string | undefined {
-  if (!value) return undefined;
-  if (typeof value === 'string') return value.trim() || undefined;
-  if (typeof value === 'object') {
-    const obj = value as Record<string, unknown>;
-    const msg =
-      typeof obj.message === 'string' ? obj.message : typeof obj.error === 'string' ? obj.error : undefined;
-    return msg?.trim() || undefined;
-  }
-  return undefined;
-}
-
-/**
- * supabase.functions.invoke throws on every non-2xx reply, and the raw text it carries
- * (`Edge function returned 404: Error, {"error":...}`) is not something to show a user.
- * This turns any of those shapes — the Response on error.context, an embedded JSON body,
- * or a bare message string — into one short Hebrew line.
- */
-async function invokeErrorMessage(error: unknown, fallback: string): Promise<string> {
-  const err = error as { context?: unknown; message?: unknown };
-  const context = err?.context;
-
+/** supabase.functions.invoke hides the response body of non-2xx replies; dig our error message out. */
+async function invokeErrorMessage(error: unknown): Promise<string> {
+  const context = (error as { context?: unknown })?.context;
   if (context instanceof Response) {
-    const text = await context.clone().text().catch(() => '');
-    const fromBody = messageFromValue(parseJson(text));
-    if (fromBody) return fromBody;
-    if (context.status === 429) return RATE_LIMIT_MESSAGE;
-    if (context.status === 404) return fallback;
+    try {
+      const body = await context.clone().json();
+      if (body?.message) return body.message;
+      if (body?.error) return body.error;
+    } catch {
+      // not JSON
+    }
   }
-
-  const raw = typeof err?.message === 'string' ? err.message : '';
-
-  // Newer supabase-js embeds the response body in the message: `Edge function returned 404: Error, {...}`
-  const embedded = raw.match(/\{[\s\S]*\}\s*$/);
-  if (embedded) {
-    const fromBody = messageFromValue(parseJson(embedded[0]));
-    if (fromBody) return fromBody;
-  }
-
-  if (/rate limit/i.test(raw)) return RATE_LIMIT_MESSAGE;
-  return raw.trim() || fallback;
+  return error instanceof Error ? error.message : 'Unknown error occurred';
 }
 
 /**
@@ -136,15 +95,15 @@ export async function searchSong(query: string): Promise<SearchSongResponse> {
 
     if (error) {
       console.error('Error calling search-song function:', error);
-      const message = await invokeErrorMessage(error, SEARCH_FALLBACK);
-      return { error: message, message, results: [] };
+      return { error: await invokeErrorMessage(error) };
     }
 
     return data as SearchSongResponse;
   } catch (err) {
     console.error('Error searching song:', err);
-    const message = err instanceof Error ? err.message.trim() || SEARCH_FALLBACK : SEARCH_FALLBACK;
-    return { error: message, message, results: [] };
+    return {
+      error: err instanceof Error ? err.message : 'Unknown error occurred'
+    };
   }
 }
 
@@ -160,7 +119,7 @@ export async function scrapeSong(url: string): Promise<ScrapeSongResponse> {
 
     if (error) {
       console.error('Error calling scrape-song function:', error);
-      return { success: false, error: await invokeErrorMessage(error, SCRAPE_FALLBACK) };
+      return { success: false, error: await invokeErrorMessage(error) };
     }
 
     return data as ScrapeSongResponse;
@@ -168,7 +127,7 @@ export async function scrapeSong(url: string): Promise<ScrapeSongResponse> {
     console.error('Error scraping song:', err);
     return {
       success: false,
-      error: err instanceof Error ? err.message.trim() || SCRAPE_FALLBACK : SCRAPE_FALLBACK,
+      error: err instanceof Error ? err.message : 'Unknown error occurred'
     };
   }
 }
