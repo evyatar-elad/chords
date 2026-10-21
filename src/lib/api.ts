@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// Pin the edge functions to Frankfurt: tab4u's search returns nothing to some regions
+// (seen in ap-south-1), and Frankfurt is close to Israel anyway. Passed as a query
+// parameter rather than invoke's `region` option, which also adds an x-region header
+// that the functions' CORS preflight may not allow.
+const inRegion = (fn: string) => `${fn}?forceFunctionRegion=eu-central-1`;
+
 // Mirrors supabase/functions/scrape-song/parser.ts
 export interface ChordPosition {
   chord: string;
@@ -89,7 +95,7 @@ async function invokeErrorMessage(error: unknown): Promise<string> {
  */
 export async function searchSong(query: string): Promise<SearchSongResponse> {
   try {
-    const { data, error } = await supabase.functions.invoke('search-song', {
+    const { data, error } = await supabase.functions.invoke(inRegion('search-song'), {
       body: { query },
     });
 
@@ -113,7 +119,7 @@ export async function searchSong(query: string): Promise<SearchSongResponse> {
  */
 export async function scrapeSong(url: string): Promise<ScrapeSongResponse> {
   try {
-    const { data, error } = await supabase.functions.invoke('scrape-song', {
+    const { data, error } = await supabase.functions.invoke(inRegion('scrape-song'), {
       body: { url },
     });
 

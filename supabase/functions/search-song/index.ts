@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-region',
 };
 
 // ============================================
@@ -77,16 +77,25 @@ function parseSearchResults(html: string): SearchResult[] {
   return results;
 }
 
-/** tab4u's search page, fetched directly; Firecrawl only as a fallback. */
-async function fetchSearchHtml(query: string): Promise<string> {
+/**
+ * Results from tab4u's search page, fetched directly; Firecrawl only as a fallback.
+ * Some regions get an empty page from tab4u (seen in ap-south-1), so an empty
+ * direct result is retried through Firecrawl too.
+ */
+async function searchTab4u(query: string): Promise<SearchResult[]> {
   const searchUrl = `https://www.tab4u.com/resultsSimple?tab=songs&q=${encodeURIComponent(query)}`;
   try {
     const res = await fetch(searchUrl, {
       headers: { 'User-Agent': BROWSER_UA, 'Accept-Language': 'he,en;q=0.8' },
       signal: AbortSignal.timeout(10000),
     });
-    if (res.ok) return await res.text();
-    console.warn('Direct search failed with status', res.status);
+    if (res.ok) {
+      const results = parseSearchResults(await res.text());
+      if (results.length) return results;
+      console.warn('Direct search returned no results, trying Firecrawl');
+    } else {
+      console.warn('Direct search failed with status', res.status);
+    }
   } catch (e) {
     console.warn('Direct search error:', e);
   }
@@ -100,7 +109,7 @@ async function fetchSearchHtml(query: string): Promise<string> {
   });
   const data = await res.json();
   if (!res.ok || !data.success) throw new Error(data.error || 'Failed to perform search');
-  return data.data?.html || '';
+  return parseSearchResults(data.data?.html || '');
 }
 
 serve(async (req) => {
@@ -131,8 +140,7 @@ serve(async (req) => {
     }
 
     const trimmed = query.trim().slice(0, 100);
-    const html = await fetchSearchHtml(trimmed);
-    const results = parseSearchResults(html).slice(0, 15);
+    const results = (await searchTab4u(trimmed)).slice(0, 15);
     console.log('Search', JSON.stringify(trimmed), '→', results.length, 'results');
 
     if (results.length === 0) {
