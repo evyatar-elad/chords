@@ -118,11 +118,19 @@ const Index = () => {
         setSearchQuery(input);
         setSearchResults(results);
       }
+    } catch (error) {
+      console.error("Error searching song:", error);
+      toast({
+        title: "שגיאה בחיפוש",
+        description: "אירעה שגיאה בחיפוש השיר, נסה שוב",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
       setLoadingMessage("");
     }
   };
+
 
   const handleSelectResult = (result: SearchResult) => {
     setSearchResults([]);
