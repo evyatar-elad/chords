@@ -137,3 +137,35 @@ export async function scrapeSong(url: string): Promise<ScrapeSongResponse> {
     };
   }
 }
+
+export interface Favorite {
+  url: string;
+  title: string;
+  artist: string;
+  transposition: number;
+  savedAt: string;
+}
+
+export type FavoritesAction =
+  | { action: 'list' }
+  | { action: 'save'; favorite: Omit<Favorite, 'savedAt'> }
+  | { action: 'remove'; url: string };
+
+/** The shared favorites list; every action returns the whole updated list. */
+export async function favoritesRequest(body: FavoritesAction): Promise<Favorite[]> {
+  const { data, error } = await supabase.functions.invoke(inRegion('favorites'), { body });
+  if (error) throw new Error(await invokeErrorMessage(error));
+  return (data?.favorites ?? []) as Favorite[];
+}
+
+/** Same song regardless of ?ton= or #hash (matches the favorites function). */
+export function normalizeSongUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    u.searchParams.delete('ton');
+    u.hash = '';
+    return u.toString();
+  } catch {
+    return url;
+  }
+}

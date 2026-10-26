@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Guitar, ChevronLeft, ChevronRight, Maximize, Minimize, ChevronUp, ChevronDown } from "lucide-react";
+import { Guitar, ChevronLeft, ChevronRight, Maximize, Minimize, ChevronUp, ChevronDown, Bookmark } from "lucide-react";
 import { SongInput } from "@/components/SongInput";
 import { SongDisplayPaged } from "@/components/SongDisplayPaged";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
 import { QuickSongInput } from "@/components/QuickSongInput";
 import { EasyVersionButton } from "@/components/EasyVersionButton";
 import { SearchResultsDialog } from "@/components/SearchResultsDialog";
+import { FavoriteStar } from "@/components/FavoriteStar";
+import { FavoritesDialog, FavoritesList, formatTransposition as formatKey } from "@/components/FavoritesDialog";
+import { useFavorites } from "@/hooks/use-favorites";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { scrapeSong, searchSong, SongData, SearchResult } from "@/lib/api";
+import { scrapeSong, searchSong, normalizeSongUrl, SongData, SearchResult, Favorite } from "@/lib/api";
 
 const MIN_FONT_SIZE = 10;
 const MAX_FONT_SIZE = 28;
@@ -48,6 +51,12 @@ const Index = () => {
     return localStorage.getItem("debugPagination") === "1";
   });
 
+  const [songUrl, setSongUrl] = useState<string | null>(null);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const favoritesApi = useFavorites();
+  const { favorites } = favoritesApi;
+  const savedFavorite = favoritesApi.find(songUrl);
+
   const setFontSize = useCallback((value: number) => {
     const next = clampFontSize(value);
     setFontSizeState(next);
@@ -66,8 +75,11 @@ const Index = () => {
 
       if (response.success && response.data) {
         setSong(response.data);
+        setSongUrl(normalizeSongUrl(url));
         setCurrentPage(0);
-        setTransposition(response.data.transposition || 0);
+        // a saved song opens in the key it was saved with
+        const saved = favoritesApi.find(url);
+        setTransposition(saved ? saved.transposition : response.data.transposition || 0);
         setOriginalTransposition(response.data.transposition || 0);
       } else {
         toast({
@@ -169,8 +181,57 @@ const Index = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [goToNextPage, goToPrevPage]);
 
+  const handleOpenFavorite = (favorite: Favorite) => {
+    setFavoritesOpen(false);
+    loadSong(favorite.url);
+  };
+
+  const handleRemoveFavorite = async (favorite: Favorite) => {
+    try {
+      await favoritesApi.remove(favorite.url);
+    } catch {
+      toast({ title: "לא הצלחתי להסיר את השיר", description: "נסה שוב", variant: "destructive" });
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!song || !songUrl) return;
+    try {
+      if (savedFavorite && savedFavorite.transposition === transposition) {
+        await favoritesApi.remove(songUrl);
+        toast({ title: "הוסר מהשמורים" });
+      } else {
+        await favoritesApi.save({ url: songUrl, title: song.title, artist: song.artist, transposition });
+        toast({
+          title: savedFavorite ? "הסולם השמור עודכן" : "נשמר בשמורים",
+          description: (
+            <>
+              סולם <span dir="ltr">{formatKey(transposition)}</span>
+            </>
+          ),
+        });
+      }
+    } catch {
+      toast({ title: "השמירה נכשלה", description: "בדוק את החיבור ונסה שוב", variant: "destructive" });
+    }
+  };
+
+  const favoritesButton = (className: string, iconClassName = "h-4 w-4") => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setFavoritesOpen(true)}
+      className={`shrink-0 ${className}`}
+      title="שירים שמורים"
+      aria-label="שירים שמורים"
+    >
+      <Bookmark className={iconClassName} />
+    </Button>
+  );
+
   const handleBack = () => {
     setSong(null);
+    setSongUrl(null);
     setTransposition(0);
     setOriginalTransposition(0);
   };
@@ -375,6 +436,11 @@ const Index = () => {
                     </p>
                   )}
                 </div>
+
+                {song && (
+                  <FavoriteStar saved={savedFavorite} transposition={transposition} onClick={handleToggleFavorite} className="h-8 w-8" iconClassName="h-5 w-5" />
+                )}
+                {favoritesButton("h-8 w-8")}
               </div>
 
               {/* Row 2: Search + Hide/Show + Fullscreen */}
@@ -417,7 +483,7 @@ const Index = () => {
                     <ChevronUp className="h-3.5 w-3.5" />
                   </Button>
 
-                  <span className="text-xs font-mono tabular-nums text-foreground px-1.5 min-w-[2rem] text-center">
+                  <span dir="ltr" className="text-xs font-mono tabular-nums text-foreground px-1.5 min-w-[2rem] text-center">
                     {formatTransposition(transposition)}
                   </span>
 
@@ -494,7 +560,7 @@ const Index = () => {
                       <ChevronUp className="h-3 w-3" />
                     </Button>
 
-                    <span className="text-xs font-mono tabular-nums text-foreground px-1 min-w-[1.5rem] text-center">
+                    <span dir="ltr" className="text-xs font-mono tabular-nums text-foreground px-1 min-w-[1.5rem] text-center">
                       {formatTransposition(transposition)}
                     </span>
 
@@ -567,9 +633,11 @@ const Index = () => {
                   </div>
                 </div>
               )}
+              {song && <FavoriteStar saved={savedFavorite} transposition={transposition} onClick={handleToggleFavorite} className="h-6 w-6" />}
 
-              {/* Left side (RTL end): Search + Hide/Show + Fullscreen */}
+              {/* Left side (RTL end): Saved songs + Search + Hide/Show + Fullscreen */}
               <div className="flex items-center gap-1">
+                {favoritesButton("h-6 w-6", "h-3.5 w-3.5")}
                 <div className="min-w-0 w-[200px]">
                   <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} onFocus={handleSearchFocus} />
                 </div>
@@ -623,6 +691,10 @@ const Index = () => {
               </p>
             </div>
 
+            {song && (
+              <FavoriteStar saved={savedFavorite} transposition={transposition} onClick={handleToggleFavorite} className="h-9 w-9" iconClassName="h-5 w-5" />
+            )}
+
             <div className="shrink-0">
               <FloatingToolbar
                 transposition={transposition}
@@ -669,6 +741,8 @@ const Index = () => {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </div>
+
+            {favoritesButton("h-9 w-9")}
 
             <div className="shrink-0">
               <QuickSongInput onSubmit={handleSubmit} isLoading={isLoading} loadingMessage={loadingMessage} />
@@ -739,6 +813,14 @@ const Index = () => {
         </div>
       )}
 
+      <FavoritesDialog
+        open={favoritesOpen}
+        onOpenChange={setFavoritesOpen}
+        favorites={favorites}
+        onOpen={handleOpenFavorite}
+        onRemove={handleRemoveFavorite}
+      />
+
       <SearchResultsDialog
         query={searchQuery}
         results={searchResults}
@@ -749,7 +831,7 @@ const Index = () => {
       {/* Main content */}
       <main className="min-h-screen transition-[padding-top] duration-300" style={{ paddingTop: `var(--header-h, 56px)` }}> 
         {!song ? (
-          <div className="min-h-[calc(100dvh-var(--header-h,56px))] flex flex-col items-center justify-center px-4 py-12">
+          <div className="min-h-[calc(100dvh-var(--header-h,56px))] flex flex-col items-center justify-center px-4 py-12 overflow-y-auto">
             <div className="text-center mb-12">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 mb-6">
                 <Guitar className="w-10 h-10 text-primary" />
@@ -761,6 +843,18 @@ const Index = () => {
                 שירים בגרסאות קלות ועוד
               </p>
             </div>
+
+            {favorites.length > 0 && (
+              <section className="w-full max-w-md" aria-label="שירים שמורים">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-2">
+                  <Bookmark className="h-4 w-4" />
+                  שירים שמורים
+                </h3>
+                <div className="rounded-xl border border-border/50 bg-card/40 px-2 py-1">
+                  <FavoritesList favorites={favorites} onOpen={handleOpenFavorite} onRemove={handleRemoveFavorite} />
+                </div>
+              </section>
+            )}
           </div>
         ) : (
           <div className="h-[calc(100dvh-var(--header-h,56px))] flex flex-col overflow-hidden">
